@@ -6,8 +6,8 @@ const userSchema = new mongoose.Schema(
         email: { type: String, required: true, unique: true },
         role: {
             type: String,
-            enum: ["participant", "organizer", "judge", "mentor", "admin"],
-            default: "participant",
+            enum: ["user", "hackathon_creator", "admin"],
+            default: "user",
         },
         expertise: String,
         googleId: { type: String, required: true, unique: true }, // store Google ID

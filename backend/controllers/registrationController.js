@@ -1,6 +1,8 @@
 const Hackathon = require("../models/Hackathon");
 const Team = require("../models/Team");
 const Idea = require("../models/Idea");
+const HackathonRole = require("../models/HackathonRole");
+const { emitTeamUpdate } = require("../socket");
 
 class RegistrationController {
     /**
@@ -81,12 +83,38 @@ class RegistrationController {
                 hackathon: hackathon._id,
             });
 
+            // Assign "participant" role to all team members
+            for (const memberId of memberIds) {
+                try {
+                    await HackathonRole.findOneAndUpdate(
+                        { user: memberId, hackathon: hackathonId },
+                        {
+                            user: memberId,
+                            hackathon: hackathonId,
+                            role: "participant",
+                            assignedBy: req.user._id,
+                        },
+                        { upsert: true, new: true }
+                    );
+                } catch (err) {
+                    // If role already exists, continue (unique constraint)
+                    console.log(`Role already exists for user ${memberId}`);
+                }
+            }
+
             // Populate response
             const populatedTeam = await Team.findById(team._id)
                 .populate("idea", "title description")
                 .populate("members", "name email")
                 .populate("hackathon", "title")
                 .populate("organization", "name");
+
+            // Emit team created event
+            emitTeamUpdate(
+                req.user.organization._id.toString(),
+                "created",
+                populatedTeam
+            );
 
             res.status(201).json({
                 message: req.__("registration.success"),
@@ -122,6 +150,7 @@ class RegistrationController {
             const teams = await Team.find({ hackathon: hackathonId })
                 .populate("idea", "title description")
                 .populate("members", "name email")
+                .populate("mentor", "name email")
                 .populate("organization", "name")
                 .sort({ createdAt: -1 });
 
@@ -216,6 +245,38 @@ class RegistrationController {
                     message: req.__("registration.access_denied"),
                 });
             }
+
+            // Populate team before deletion for event
+            const populatedTeam = await Team.findById(teamId)
+                .populate("idea", "title description")
+                .populate("members", "name email")
+                .populate("hackathon", "title")
+                .populate("organization", "name");
+
+            // Remove participant roles for all team members when team is withdrawn
+            // This effectively changes their hackathon role from "participant" to no role (regular user)
+            // Only removes "participant" roles, preserving organizer/judge/mentor roles if they exist
+            for (const memberId of team.members) {
+                try {
+                    const hackathonRole = await HackathonRole.findOne({
+                        user: memberId,
+                        hackathon: hackathonId,
+                        role: "participant"
+                    });
+                    if (hackathonRole) {
+                        await HackathonRole.findByIdAndDelete(hackathonRole._id);
+                    }
+                } catch (err) {
+                    console.log(`Error removing participant role for user ${memberId}:`, err.message);
+                }
+            }
+
+            // Emit team deleted event before deletion
+            emitTeamUpdate(
+                req.user.organization._id.toString(),
+                "deleted",
+                populatedTeam
+            );
 
             await Team.findByIdAndDelete(teamId);
 
@@ -322,6 +383,13 @@ class RegistrationController {
                 .populate("members", "name email")
                 .populate("hackathon", "title")
                 .populate("organization", "name");
+
+            // Emit team updated event
+            emitTeamUpdate(
+                req.user.organization._id.toString(),
+                "updated",
+                populatedTeam
+            );
 
             res.json({ message: req.__("registration.update_success" || "Updated"), team: populatedTeam });
         } catch (err) {

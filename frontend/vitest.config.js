@@ -8,7 +8,13 @@ export default defineConfig({
     include: ['src/**/*.test.{js,jsx,ts,tsx}'],
   },
   coverage: {
-    provider: 'c8',
-    reporter: ['text', 'lcov'],
+    provider: 'v8',
+    reporter: ['text', 'lcov', 'html', 'json'],
+    exclude: [
+      'node_modules/',
+      'src/setupTests.js',
+      '**/*.test.{js,jsx,ts,tsx}',
+      '**/__tests__/**',
+    ],
   },
 })

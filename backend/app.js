@@ -24,9 +24,11 @@ app.use(i18nMiddleware);
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/ideas', require('./routes/ideaRoutes'));
-app.use('/api/announcements', require('./routes/announcementRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/hackathons', require('./routes/hackathonRoutes'));
+app.use('/api/hackathons', require('./routes/hackathonRoutes')); // Includes nested /announcements routes
 app.use('/api/register', require('./routes/registrationRoutes'));
+app.use('/api/submissions', require('./routes/submissionRoutes'));
+app.use('/api/teams', require('./routes/messageRoutes'));
+app.use('/api/reminders', require('./routes/reminderRoutes'));
 
 module.exports = app;

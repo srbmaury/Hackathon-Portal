@@ -50,7 +50,7 @@ class Trie {
 
 import { AuthContext } from "../../context/AuthContext";
 
-const MemberSearchPicker = ({ users, selectedIds = [], onChange }) => {
+const MemberSearchPicker = ({ users, selectedIds = [], onChange, maxTeamSize = null }) => {
     const auth = useContext(AuthContext) || {};
     const user = auth.user;
     const [query, setQuery] = useState("");
@@ -80,8 +80,14 @@ const MemberSearchPicker = ({ users, selectedIds = [], onChange }) => {
 
         let updated;
         if (selectedIds.includes(id)) {
+            // Always allow removal, even when at max
             updated = selectedIds.filter((sid) => sid !== id); // remove id
         } else {
+            // Prevent adding more members if max team size is reached
+            // selectedIds already includes the current user, so we check if adding one more would exceed maxTeamSize
+            if (maxTeamSize !== null && selectedIds.length >= maxTeamSize) {
+                return;
+            }
             updated = [...selectedIds, id]; // add id
         }
         onChange(updated);
@@ -99,17 +105,31 @@ const MemberSearchPicker = ({ users, selectedIds = [], onChange }) => {
             />
 
             <List dense sx={{ maxHeight: 200, overflowY: "auto" }}>
-                {filtered.map((u) => (
-                    <ListItem key={u._id} button onClick={() => handleToggle(u._id)}>
+                {filtered.map((u) => {
+                    const isCurrentUser = String(u._id) === String(user?._id);
+                    // selectedIds already includes the current user, so check against maxTeamSize directly
+                    const isMaxReached = maxTeamSize !== null && selectedIds.length >= maxTeamSize;
+                    const isSelected = selectedIds.includes(u._id);
+                    // Allow removal of selected members even when at max, but prevent adding new ones
+                    const isDisabled = isCurrentUser || (isMaxReached && !isSelected);
+                    
+                    return (
+                        <ListItem 
+                            key={u._id} 
+                            button 
+                            onClick={() => handleToggle(u._id)}
+                            disabled={isDisabled}
+                        >
                         <Checkbox
-                            checked={selectedIds.includes(u._id)}
+                                checked={isSelected}
                             tabIndex={-1}
                             disableRipple
-                            disabled={String(u._id) === String(user?._id)}
+                                disabled={isDisabled}
                         />
                         <ListItemText primary={u.name} secondary={u.email} />
                     </ListItem>
-                ))}
+                    );
+                })}
             </List>
 
             {selectedIds.length > 0 && (

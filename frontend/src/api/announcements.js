@@ -31,3 +31,21 @@ export const deleteAnnouncement = async (id, token) => {
     });
     return res.data;
 };
+
+// AI-powered announcement formatting
+export const formatAnnouncement = async (hackathonId, title, message, token) => {
+    const res = await API.post(`/hackathons/${hackathonId}/announcements/format`, 
+        { title, message },
+        { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return res.data;
+};
+
+// Get announcement enhancement suggestions
+export const enhanceAnnouncement = async (hackathonId, title, message, token) => {
+    const res = await API.post(`/hackathons/${hackathonId}/announcements/enhance`, 
+        { title, message },
+        { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return res.data;
+};

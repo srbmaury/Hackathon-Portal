@@ -50,7 +50,7 @@ describe("IdeaSubmissionPage", () => {
   beforeEach(() => {
     localStorage.setItem("token", "mock-token");
     vi.clearAllMocks();
-    api.getUserIdeas.mockResolvedValue({ ideas: mockIdeas });
+    api.getUserIdeas.mockResolvedValue(mockIdeas);
   });
 
   it("renders the page and fetches ideas on mount", async () => {

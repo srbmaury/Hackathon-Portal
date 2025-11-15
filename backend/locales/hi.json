@@ -56,7 +56,9 @@
 		"updated_successfully": "हैकाथॉन सफलतापूर्वक अपडेट किया गया",
 		"update_failed": "हैकाथॉन अपडेट करने में विफल",
 		"deleted_successfully": "हैकाथॉन सफलतापूर्वक हटाया गया",
-		"delete_failed": "हैकाथॉन हटाने में विफल"
+		"delete_failed": "हैकाथॉन हटाने में विफल",
+		"user_id_role_required": "उपयोगकर्ता ID और भूमिका आवश्यक है",
+		"invalid_role": "अमान्य भूमिका। आयोजक, न्यायाधीश, मेंटर, या प्रतिभागी होना चाहिए"
 	},
 	"registration": {
 		"validation_failed": "पंजीकरण डेटा मान्यता विफल",
@@ -74,5 +76,43 @@
 		"withdraw_failed": "नाम वापस लेने में विफल",
 		"update_success": "टीम सफलतापूर्वक अपडेट की गई",
 		"update_failed": "टीम अपडेट करने में विफल"
+	},
+	"mentor": {
+		"assignment_success": "टीमें सफलतापूर्वक मेंटर्स को असाइन की गईं",
+		"assignment_failed": "टीमों को मेंटर्स असाइन करने में विफल",
+		"openai_not_configured": "OpenAI API कुंजी कॉन्फ़िगर नहीं की गई है"
+	},
+	"submission": {
+		"submitted": "सबमिशन सफलतापूर्वक जमा किया गया",
+		"team_not_found": "टीम नहीं मिली। कृपया पहले हैकाथॉन के लिए पंजीकरण करें।",
+		"updated": "सबमिशन सफलतापूर्वक अपडेट किया गया",
+		"not_found": "सबमिशन नहीं मिला",
+		"submit_failed": "सबमिट करने में विफल",
+		"fetch_failed": "सबमिशन प्राप्त करने में विफल",
+		"update_failed": "सबमिशन अपडेट करने में विफल",
+		"already_exists": "इस राउंड के लिए सबमिशन पहले से मौजूद है"
+	},
+	"round": {
+		"not_found": "राउंड नहीं मिला",
+		"not_active": "राउंड सक्रिय नहीं है",
+		"not_started": "राउंड अभी तक शुरू नहीं हुआ है",
+		"ended": "राउंड समाप्त हो गया है",
+		"load_failed": "राउंड डेटा लोड करने में विफल",
+		"currently_active": "वर्तमान में सक्रिय"
+	},
+	"chat": {
+		"team_not_found": "टीम नहीं मिली",
+		"access_denied": "पहुंच अस्वीकृत। आपको टीम सदस्य या मेंटर होना चाहिए।",
+		"content_required": "संदेश सामग्री आवश्यक है",
+		"fetch_failed": "संदेश लाने में विफल",
+		"send_failed": "संदेश भेजने में विफल",
+		"message_sent": "संदेश सफलतापूर्वक भेजा गया",
+		"no_messages_for_summary": "chat.no_messages_for_summary"
+	},
+	"reminder": {
+		"team_not_found": "reminder.team_not_found",
+		"access_denied": "reminder.access_denied",
+		"round_not_found": "reminder.round_not_found",
+		"sent_successfully": "reminder.sent_successfully"
 	}
 }

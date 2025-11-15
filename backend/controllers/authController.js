@@ -46,7 +46,7 @@ class AuthController {
                 // Determine role
                 const isAdmin =
                     email.startsWith(adminEmail) && !organization.admin;
-                const role = isAdmin ? "admin" : "participant";
+                const role = isAdmin ? "admin" : "user";
 
                 user = await User.create({
                     name,

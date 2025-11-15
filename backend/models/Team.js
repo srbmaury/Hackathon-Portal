@@ -24,6 +24,11 @@ const teamSchema = new mongoose.Schema(
             ref: "Hackathon",
             required: true,
         },
+        mentor: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            // Optional: mentor assigned to this team
+        },
     },
     { timestamps: true }
 );

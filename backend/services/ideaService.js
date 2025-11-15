@@ -1,8 +1,12 @@
 const Idea = require("../models/Idea");
 
 class IdeaService {
-  async getPublicIdeas() {
-    return Idea.find({ isPublic: true }).populate("submitter", "_id name").sort({ createdAt: -1 }) || [];
+  async getPublicIdeas(organizationId) {
+    const query = { isPublic: true };
+    if (organizationId) {
+      query.organization = organizationId;
+    }
+    return Idea.find(query).populate("submitter", "_id name").sort({ createdAt: -1 }) || [];
   }
 
   async createIdea({ title, description, submitterId, isPublic, organization }) {
@@ -16,8 +20,12 @@ class IdeaService {
     return idea.save();
   }
 
-  async getIdeasByUser(userId) {
-    return Idea.find({ submitter: userId }).sort({ createdAt: -1 }) || [];
+  async getIdeasByUser(userId, organizationId) {
+    const query = { submitter: userId };
+    if (organizationId) {
+      query.organization = organizationId;
+    }
+    return Idea.find(query).populate("submitter", "_id name").sort({ createdAt: -1 }) || [];
   }
 
   async updateIdea(userId, ideaId, updateData) {
@@ -43,6 +51,10 @@ class IdeaService {
     if (idea.submitter.toString() !== userId) throw new Error("Unauthorized");
 
     return Idea.deleteOne({ _id: ideaId });
+  }
+
+  async getIdeaById(ideaId) {
+    return Idea.findById(ideaId).populate("submitter", "_id name email");
   }
 }
 

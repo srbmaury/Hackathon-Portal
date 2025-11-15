@@ -77,7 +77,7 @@ describe("AuthController - Google Login", () => {
       .send({ token: "valid-user-token" });
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.user.role).toBe("participant");
+    expect(res.body.user.role).toBe("user");
 
     const dbUser = await User.findOne({ email: "user@company.com" });
     expect(dbUser).toBeTruthy();

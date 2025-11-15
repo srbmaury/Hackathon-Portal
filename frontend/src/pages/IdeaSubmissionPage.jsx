@@ -22,10 +22,11 @@ const IdeaSubmissionPage = () => {
 
     const fetchMyIdeas = async () => {
         try {
-            const { ideas } = await getUserIdeas(token);
-            setMyIdeas(ideas);
+            const ideas = await getUserIdeas(token);
+            setMyIdeas(Array.isArray(ideas) ? ideas : []);
         } catch (err) {
-            console.error(err);
+            console.error("Error fetching my ideas:", err);
+            setMyIdeas([]);
         }
     };
 

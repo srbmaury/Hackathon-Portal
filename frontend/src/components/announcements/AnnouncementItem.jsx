@@ -16,34 +16,45 @@ import {
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import CircularProgress from "@mui/material/CircularProgress";
 import dayjs from "dayjs";
 import MDEditor from "@uiw/react-md-editor";
 import MarkdownViewer from "../common/MarkdownViewer";
 import toast from "react-hot-toast";
-import { updateAnnouncement, deleteAnnouncement } from "../../api/announcements";
+import { updateAnnouncement, deleteAnnouncement, formatAnnouncement } from "../../api/announcements";
+import { updateHackathonAnnouncement, deleteHackathonAnnouncement } from "../../api/hackathons";
 import { useTranslation } from "react-i18next";
 
-const AnnouncementItem = ({ announcement, user, onUpdated, onDeleted }) => {
+const AnnouncementItem = ({ announcement, user, onUpdated, onDeleted, hackathonId, myRole }) => {
     const [editing, setEditing] = useState(false);
     const [editedMessage, setEditedMessage] = useState(announcement.message);
     const [editedTitle, setEditedTitle] = useState(announcement.title);
     const [confirmOpen, setConfirmOpen] = useState(false);
+    const [formattingAnnouncement, setFormattingAnnouncement] = useState(false);
     const token = localStorage.getItem("token");
     const theme = useTheme();
     const { t } = useTranslation();
 
-    const isOrganizer = user.role === "organizer";
+    // For hackathon-specific announcements, organizers can edit/delete any announcement
+    // For general announcements, only the creator can edit/delete
     const isAdmin = user.role === "admin";
-    const canEdit = isAdmin || (isOrganizer && announcement.createdBy._id === user._id);
-    const canDelete = isAdmin || (isOrganizer && announcement.createdBy._id === user._id);
+    const isHackathonOrganizer = myRole === "organizer";
+    const isHackathonAnnouncement = !!hackathonId;
+    const canEdit = isAdmin || (isHackathonAnnouncement && isHackathonOrganizer) || (!isHackathonAnnouncement && user.role === "organizer" && announcement.createdBy?._id === user._id);
+    const canDelete = isAdmin || (isHackathonAnnouncement && isHackathonOrganizer) || (!isHackathonAnnouncement && user.role === "organizer" && announcement.createdBy?._id === user._id);
     
     // Determine color scheme based on theme
     const colorScheme = theme.palette.mode === "dark" ? "dark" : "light";
 
-    // Delete using api.js
+    // Delete using appropriate API
     const handleDelete = async () => {
         try {
-            await deleteAnnouncement(announcement._id, token);
+            if (hackathonId) {
+                await deleteHackathonAnnouncement(hackathonId, announcement._id, token);
+            } else {
+                await deleteAnnouncement(announcement._id, token);
+            }
             toast.success(t("announcement.announcement_deleted"));
             onDeleted?.();
         } catch (err) {
@@ -53,17 +64,42 @@ const AnnouncementItem = ({ announcement, user, onUpdated, onDeleted }) => {
         }
     };
 
-    // Update using api.js
+    // Format announcement with AI
+    const handleFormatAnnouncement = async () => {
+        if (!editedTitle.trim() || !editedMessage.trim()) {
+            toast.error(t("announcement.all_fields_required"));
+            return;
+        }
+        if (!hackathonId) {
+            toast.error(t("announcement.format_failed") || "Formatting not available for general announcements");
+            return;
+        }
+        try {
+            setFormattingAnnouncement(true);
+            const result = await formatAnnouncement(hackathonId, editedTitle, editedMessage, token);
+            setEditedTitle(result.formattedTitle || editedTitle);
+            setEditedMessage(result.formattedMessage || editedMessage);
+            toast.success(t("announcement.format_success"));
+        } catch (error) {
+            console.error("Error formatting announcement:", error);
+            toast.error(error.response?.data?.message || t("announcement.format_failed"));
+        } finally {
+            setFormattingAnnouncement(false);
+        }
+    };
+
+    // Update using appropriate API
     const handleUpdate = async () => {
         try {
-            await updateAnnouncement(
-                announcement._id,
-                { title: editedTitle, message: editedMessage },
-                token
-            );
+            const updateData = { title: editedTitle, message: editedMessage };
+            if (hackathonId) {
+                await updateHackathonAnnouncement(hackathonId, announcement._id, updateData, token);
+            } else {
+                await updateAnnouncement(announcement._id, updateData, token);
+            }
             toast.success(t("announcement.announcement_updated"));
             setEditing(false);
-            onUpdated?.();
+            onUpdated?.(updateData);
         } catch (err) {
             toast.error(err.response?.data?.message || t("announcement.update_failed"));
         }
@@ -73,17 +109,36 @@ const AnnouncementItem = ({ announcement, user, onUpdated, onDeleted }) => {
         return (
             <Card sx={{ mb: 3, borderRadius: 3, boxShadow: 3 }}>
                 <CardContent>
-                    <Typography variant="h6" sx={{ mb: 2 }}>
-                        {t("announcement.edit_announcement")}
-                    </Typography>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                        <Typography variant="h6">
+                            {t("announcement.edit_announcement")}
+                        </Typography>
+                        {hackathonId && (
+                            <Button
+                                variant="outlined"
+                                color="primary"
+                                size="small"
+                                startIcon={formattingAnnouncement ? <CircularProgress size={16} /> : <AutoAwesomeIcon />}
+                                onClick={handleFormatAnnouncement}
+                                disabled={formattingAnnouncement || !editedTitle.trim() || !editedMessage.trim()}
+                                sx={{ textTransform: "none", minWidth: "160px" }}
+                            >
+                                {formattingAnnouncement ? t("announcement.formatting") : t("announcement.format_with_ai")}
+                            </Button>
+                        )}
+                    </Box>
                     <TextField
+                        label={t("announcement.title_label")}
                         value={editedTitle}
                         onChange={(e) => setEditedTitle(e.target.value)}
                         fullWidth
                         sx={{ mb: 2 }}
                     />
                     <Box data-color-mode={colorScheme}>
-                        <MDEditor value={editedMessage} onChange={setEditedMessage} height={300} />
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                            {t("announcement.message")}
+                        </Typography>
+                        <MDEditor value={editedMessage} onChange={setEditedMessage} height={300} preview="edit" />
                     </Box>
                     <Box sx={{ mt: 2, display: "flex", gap: 1 }}>
                         <Button variant="contained" color="primary" onClick={handleUpdate}>
@@ -132,7 +187,7 @@ const AnnouncementItem = ({ announcement, user, onUpdated, onDeleted }) => {
 
                 <CardContent>
                     <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5, fontSize: "0.875rem", color: "text.secondary" }}>
-                        <span>Posted by {announcement.createdBy?.name || "Unknown"}</span>
+                        <span>{t("announcement.posted_by_with_name", { name: announcement.createdBy?.name || t("announcement.unknown") })}</span>
                         <span>{dayjs(announcement.createdAt).format("DD MMM YYYY, h:mm A")}</span>
                     </Box>
 

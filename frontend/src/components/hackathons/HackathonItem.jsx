@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 import { getMyTeam, withdrawTeam } from "../../api/registrations";
@@ -26,6 +27,7 @@ import RegisterTeamModal from "../teams/HackathonRegisterModal"; // 👈 Import 
 const HackathonItem = ({ hackathon, onEdit, onDelete }) => {
     const { t } = useTranslation();
     const { user } = useContext(AuthContext);
+    const navigate = useNavigate();
     const token = localStorage.getItem("token");
     const theme = useTheme();
     const colorScheme = theme.palette.mode === "dark" ? "dark" : "light";
@@ -119,7 +121,14 @@ const HackathonItem = ({ hackathon, onEdit, onDelete }) => {
                     )}
 
                     <Stack direction="row" spacing={1}>
-                        {(user.role === "admin" || user.role === "organizer") && (
+                        <Button
+                            variant="contained"
+                            size="small"
+                            onClick={() => navigate(`/hackathons/${hackathon._id}`)}
+                        >
+                            {t("hackathon.view_details") || "View Details"}
+                        </Button>
+                        {(user.role === "admin" || user.role === "hackathon_creator") && (
                             <>
                                 <Button
                                     variant="outlined"

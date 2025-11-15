@@ -56,7 +56,9 @@
 		"updated_successfully": "హాకథాన్ విజయవంతంగా నవీకరించబడింది",
 		"update_failed": "హాకథాన్ నవీకరించడంలో విఫలమైంది",
 		"deleted_successfully": "హాకథాన్ విజయవంతంగా తొలగించబడింది",
-		"delete_failed": "హాకథాన్ తొలగించడంలో విఫలమైంది"
+		"delete_failed": "హాకథాన్ తొలగించడంలో విఫలమైంది",
+		"user_id_role_required": "వినియోగదారు ID మరియు పాత్ర అవసరం",
+		"invalid_role": "చెల్లని పాత్ర. ఆయోజకుడు, న్యాయమూర్తి, మెంటర్, లేదా పాల్గొనేవాడు అయి ఉండాలి"
 	},
 	"registration": {
 		"validation_failed": "నమోదు డేటా ధృవీకరణ విఫలమైంది",
@@ -74,5 +76,43 @@
 		"withdraw_failed": "ఉపసంహరణ విఫలమైంది",
 		"update_success": "జట్టు విజయవంతంగా నవీకరించబడింది",
 		"update_failed": "జట్టును నవీకరించడంలో విఫలమైంది"
+	},
+	"mentor": {
+		"assignment_success": "టీమ్లు విజయవంతంగా మెంటర్లకు కేటాయించబడ్డాయి",
+		"assignment_failed": "టీమ్లకు మెంటర్లను కేటాయించడంలో విఫలమైంది",
+		"openai_not_configured": "OpenAI API కీ కాన్ఫిగర్ చేయబడలేదు"
+	},
+	"submission": {
+		"submitted": "సమర్పణ విజయవంతంగా సమర్పించబడింది",
+		"team_not_found": "జట్టు కనబడలేదు. దయచేసి మొదట హాకథాన్‌కు నమోదు చేయండి.",
+		"updated": "సమర్పణ విజయవంతంగా నవీకరించబడింది",
+		"not_found": "సమర్పణ కనబడలేదు",
+		"submit_failed": "సమర్పించడంలో విఫలమైంది",
+		"fetch_failed": "సమర్పణలను పొందడంలో విఫలమైంది",
+		"update_failed": "సమర్పణను నవీకరించడంలో విఫలమైంది",
+		"already_exists": "ఈ రౌండ్‌కు సమర్పణ ఇప్పటికే ఉంది"
+	},
+	"round": {
+		"not_found": "రౌండ్ కనుగొనబడలేదు",
+		"not_active": "రౌండ్ సక్రియంగా లేదు",
+		"not_started": "రౌండ్ ఇంకా ప్రారంభం కాలేదు",
+		"ended": "రౌండ్ ముగిసింది",
+		"load_failed": "రౌండ్ డేటా లోడ్ చేయడంలో విఫలమైంది",
+		"currently_active": "ప్రస్తుతం సక్రియంగా"
+	},
+	"chat": {
+		"team_not_found": "బృందం కనుగొనబడలేదు",
+		"access_denied": "ప్రవేశం తిరస్కరించబడింది। మీరు బృందం సభ్యుడు లేదా మార్గదర్శి అయి ఉండాలి।",
+		"content_required": "సందేశం కంటెంట్ అవసరం",
+		"fetch_failed": "సందేశాలను పొందడంలో విఫలమైంది",
+		"send_failed": "సందేశం పంపడంలో విఫలమైంది",
+		"message_sent": "సందేశం విజయవంతంగా పంపబడింది",
+		"no_messages_for_summary": "chat.no_messages_for_summary"
+	},
+	"reminder": {
+		"team_not_found": "reminder.team_not_found",
+		"access_denied": "reminder.access_denied",
+		"round_not_found": "reminder.round_not_found",
+		"sent_successfully": "reminder.sent_successfully"
 	}
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState, useContext, useRef } from "react";
 import {
     Box,
     Typography,
@@ -7,7 +7,13 @@ import {
     DialogContent,
     DialogActions,
     Button,
+    Container,
+    Fab,
+    Collapse,
+    Alert,
+    IconButton,
 } from "@mui/material";
+import { Add as AddIcon, Close as CloseIcon } from "@mui/icons-material";
 import { AuthContext } from "../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
@@ -29,6 +35,8 @@ const HackathonPage = () => {
     const { token, user } = useContext(AuthContext);
     const [hackathons, setHackathons] = useState([]);
     const [editingHackathon, setEditingHackathon] = useState(null);
+    const [showForm, setShowForm] = useState(false);
+    const formRef = useRef(null);
 
     // For Delete Confirmation Dialog
     const [selectedHackathon, setSelectedHackathon] = useState(null);
@@ -48,12 +56,50 @@ const HackathonPage = () => {
         fetchHackathons();
     }, [token]);
 
+    // Listen for real-time hackathon updates via WebSocket
+    useEffect(() => {
+        const handleHackathonUpdate = (event) => {
+            const { eventType, hackathon } = event.detail;
+            console.log("Hackathon update received:", eventType, hackathon);
+            
+            if (eventType === "created") {
+                // Add new hackathon to the list
+                setHackathons((prev) => [hackathon, ...prev]);
+                toast.success(`New hackathon: ${hackathon.title}`);
+            } else if (eventType === "updated") {
+                // Update existing hackathon in the list
+                setHackathons((prev) =>
+                    prev.map((h) => (h._id === hackathon._id ? hackathon : h))
+                );
+                // If we're editing this hackathon, update it
+                if (editingHackathon && editingHackathon._id === hackathon._id) {
+                    setEditingHackathon(hackathon);
+                }
+            } else if (eventType === "deleted") {
+                // Remove hackathon from the list
+                setHackathons((prev) => prev.filter((h) => h._id !== hackathon._id));
+                // If we're editing this hackathon, close the form
+                if (editingHackathon && editingHackathon._id === hackathon._id) {
+                    setEditingHackathon(null);
+                    setShowForm(false);
+                }
+            }
+        };
+
+        window.addEventListener("hackathon_updated", handleHackathonUpdate);
+
+        return () => {
+            window.removeEventListener("hackathon_updated", handleHackathonUpdate);
+        };
+    }, [editingHackathon]);
+
     const handleCreate = async (data) => {
         try {
             await createHackathon(data, token);
             toast.success(t("hackathon.created"));
             fetchHackathons();
             setEditingHackathon(null);
+            setShowForm(false);
         } catch (err) {
             console.error(err);
             toast.error(t("hackathon.create_failed"));
@@ -67,6 +113,7 @@ const HackathonPage = () => {
             toast.success(t("hackathon.updated"));
             fetchHackathons();
             setEditingHackathon(null);
+            setShowForm(false);
         } catch (err) {
             console.error(err);
             toast.error(t("hackathon.update_failed"));
@@ -106,28 +153,103 @@ const HackathonPage = () => {
 
     const handleEdit = (hackathon) => {
         setEditingHackathon(hackathon);
+        setShowForm(true);
+        // Scroll to form after a brief delay to ensure it's rendered
+        setTimeout(() => {
+            formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
     };
+
+    const handleCancelEdit = () => {
+        setEditingHackathon(null);
+        setShowForm(false);
+    };
+
+    const handleCreateNew = () => {
+        setEditingHackathon(null);
+        setShowForm(true);
+        setTimeout(() => {
+            formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
+    };
+
+    const canCreateHackathon = user.role === "admin" || user.role === "hackathon_creator";
 
     return (
         <DashboardLayout>
-            <Typography variant="h4" gutterBottom>
+            <Container maxWidth="xl">
+                <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <Typography variant="h4" fontWeight={600} color="primary">
                 {t("hackathon.hackathons")}
             </Typography>
+                    {canCreateHackathon && !showForm && (
+                        <Button
+                            variant="contained"
+                            startIcon={<AddIcon />}
+                            onClick={handleCreateNew}
+                            size="large"
+                            sx={{ borderRadius: 2 }}
+                        >
+                            {t("hackathon.create_hackathon")}
+                        </Button>
+                    )}
+                </Box>
 
-            {(user.role === "admin" || user.role === "organizer") && (
+                {/* Form Section with Alert */}
+                {canCreateHackathon && showForm && (
+                    <Box ref={formRef} sx={{ mb: 4 }}>
+                        <Collapse in={showForm}>
+                            <Alert
+                                severity={editingHackathon ? "info" : "success"}
+                                action={
+                                    <IconButton
+                                        aria-label="close"
+                                        color="inherit"
+                                        size="small"
+                                        onClick={handleCancelEdit}
+                                    >
+                                        <CloseIcon fontSize="inherit" />
+                                    </IconButton>
+                                }
+                                sx={{ mb: 2 }}
+                            >
+                                {editingHackathon
+                                    ? t("hackathon.editing_mode") || `Editing: ${editingHackathon.title}`
+                                    : t("hackathon.creating_mode") || "Creating a new hackathon"}
+                            </Alert>
                 <HackathonForm
                     initialData={editingHackathon}
                     onSubmit={editingHackathon ? handleUpdate : handleCreate}
+                                onCancel={handleCancelEdit}
                 />
+                        </Collapse>
+                    </Box>
             )}
 
-            <Box mt={4}>
+                {/* Hackathons List */}
+                <Box>
                 <HackathonList
                     hackathons={hackathons}
                     onEdit={handleEdit}
                     onDelete={handleDeleteClick}
                 />
             </Box>
+
+                {/* Floating Action Button - Shows when form is hidden */}
+                {canCreateHackathon && !showForm && hackathons.length > 0 && (
+                    <Fab
+                        color="primary"
+                        aria-label="add"
+                        onClick={handleCreateNew}
+                        sx={{
+                            position: "fixed",
+                            bottom: 32,
+                            right: 32,
+                        }}
+                    >
+                        <AddIcon />
+                    </Fab>
+                )}
 
             <ConfirmDialog
                 open={deleteDialogOpen}
@@ -141,6 +263,7 @@ const HackathonPage = () => {
                 onConfirm={handleConfirmDelete}
                 onCancel={handleCancelDelete}
             />
+            </Container>
         </DashboardLayout>
     );
 };

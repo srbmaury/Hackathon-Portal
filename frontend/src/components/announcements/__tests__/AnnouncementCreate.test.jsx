@@ -49,7 +49,7 @@ describe("AnnouncementCreate component", () => {
     fireEvent.click(createBtn);
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith("All fields are required");
+      expect(toast.error).toHaveBeenCalledWith("announcement.all_fields_required");
     });
   });
 

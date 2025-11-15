@@ -26,7 +26,7 @@ vi.mock("../../components/ideas/IdeasTable", () => ({
 
 // Mock API
 vi.mock("../../api/ideas", () => ({
-    getPublicIdeas: vi.fn().mockResolvedValue({ ideas: [{ id: 1, title: "Idea 1" }] }),
+    getPublicIdeas: vi.fn().mockResolvedValue([{ id: 1, title: "Idea 1" }]),
 }));
 
 describe("PublicIdeasPage", () => {

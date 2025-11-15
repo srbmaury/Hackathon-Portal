@@ -21,10 +21,11 @@ const PublicIdeasPage = () => {
 
     const fetchPublicIdeas = async () => {
         try {
-            const { ideas } = await getPublicIdeas(token);
-            setIdeas(ideas);
+            const ideas = await getPublicIdeas(token);
+            setIdeas(Array.isArray(ideas) ? ideas : []);
         } catch (err) {
-            console.error(err);
+            console.error("Error fetching public ideas:", err);
+            setIdeas([]);
         }
     };
 

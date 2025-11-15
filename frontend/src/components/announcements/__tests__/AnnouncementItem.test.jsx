@@ -44,7 +44,8 @@ describe("AnnouncementItem component", () => {
     render(<AnnouncementItem announcement={announcement} user={user} />);
     expect(screen.getByText("Test Announcement")).toBeInTheDocument();
     expect(screen.getByText("Hello world")).toBeInTheDocument();
-    expect(screen.getByText(/Posted by Test User/i)).toBeInTheDocument();
+    // The "Posted by" text uses translation with interpolation
+    expect(screen.getByText(/announcement.posted_by_with_name/i)).toBeInTheDocument();
   });
 
   test("opens edit mode when edit button is clicked", () => {

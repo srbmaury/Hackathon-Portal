@@ -101,13 +101,19 @@ describe("HackathonPage", () => {
 
         it("renders HackathonForm for admin users", async () => {
             renderWithUser("admin");
+            // Form is only shown when "Create Hackathon" button is clicked
+            const createButton = await screen.findByText("hackathon.create_hackathon");
+            createButton.click();
             await waitFor(() => {
                 expect(screen.getByTestId("hackathon-form")).toBeInTheDocument();
             });
         });
 
-        it("renders HackathonForm for organizer users", async () => {
-            renderWithUser("organizer");
+        it("renders HackathonForm for hackathon_creator users", async () => {
+            renderWithUser("hackathon_creator");
+            // Form is only shown when "Create Hackathon" button is clicked
+            const createButton = await screen.findByText("hackathon.create_hackathon");
+            createButton.click();
             await waitFor(() => {
                 expect(screen.getByTestId("hackathon-form")).toBeInTheDocument();
             });
@@ -170,6 +176,10 @@ describe("HackathonPage", () => {
 
             renderWithUser("admin");
 
+            // Click "Create Hackathon" button to show form
+            const createButton = await screen.findByText("hackathon.create_hackathon");
+            createButton.click();
+
             await waitFor(() => {
                 expect(screen.getByTestId("submit-form-btn")).toBeInTheDocument();
             });
@@ -223,6 +233,10 @@ describe("HackathonPage", () => {
 
         it("does not call updateHackathon when no hackathon is being edited", async () => {
             renderWithUser("admin");
+
+            // Click "Create Hackathon" button to show form
+            const createButton = await screen.findByText("hackathon.create_hackathon");
+            createButton.click();
 
             await waitFor(() => {
                 expect(screen.getByTestId("submit-form-btn")).toBeInTheDocument();
@@ -294,15 +308,13 @@ describe("HackathonPage", () => {
                 expect(screen.getByText("Hackathon 1")).toBeInTheDocument();
             });
 
-            // Initially should show "Create" button
-            expect(screen.getByText("Create")).toBeInTheDocument();
-
             // Click edit
             const editButtons = screen.getAllByText("Edit");
             editButtons[0].click();
 
-            // Should now show "Update" button (indicating edit mode)
+            // Should now show "Update" button (indicating edit mode) and form should be visible
             await waitFor(() => {
+                expect(screen.getByTestId("hackathon-form")).toBeInTheDocument();
                 expect(screen.getByText("Update")).toBeInTheDocument();
             });
         });
@@ -328,9 +340,9 @@ describe("HackathonPage", () => {
             const submitBtn = screen.getByTestId("submit-form-btn");
             submitBtn.click();
 
-            // After update, should be back in create mode
+            // After update, form should be hidden (showForm becomes false)
             await waitFor(() => {
-                expect(screen.getByText("Create")).toBeInTheDocument();
+                expect(screen.queryByTestId("hackathon-form")).not.toBeInTheDocument();
             });
         });
 
@@ -362,13 +374,19 @@ describe("HackathonPage", () => {
     describe("Role-based Access", () => {
         it("allows admin to see form", async () => {
             renderWithUser("admin");
+            // Form is only shown when "Create Hackathon" button is clicked
+            const createButton = await screen.findByText("hackathon.create_hackathon");
+            createButton.click();
             await waitFor(() => {
                 expect(screen.getByTestId("hackathon-form")).toBeInTheDocument();
             });
         });
 
-        it("allows organizer to see form", async () => {
-            renderWithUser("organizer");
+        it("allows hackathon_creator to see form", async () => {
+            renderWithUser("hackathon_creator");
+            // Form is only shown when "Create Hackathon" button is clicked
+            const createButton = await screen.findByText("hackathon.create_hackathon");
+            createButton.click();
             await waitFor(() => {
                 expect(screen.getByTestId("hackathon-form")).toBeInTheDocument();
             });

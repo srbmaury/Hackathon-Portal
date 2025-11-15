@@ -7,8 +7,12 @@ import PublicIdeasPage from "../pages/PublicIdeasPage";
 import AnnouncementsPage from "../pages/AnnouncementsPage";
 import SettingsPage from "../pages/SettingsPage";
 import UserManagementPage from "../pages/UserManagementPage";
+import AdminMembersPage from "../pages/AdminMembersPage";
 import HackathonPage from "../pages/HackathonPage";
+import HackathonDetailsPage from "../pages/HackathonDetailsPage";
+import RoundDetailsPage from "../pages/RoundDetailsPage";
 import MyTeamsPage from "../pages/MyTeamsPage";
+import ChatPage from "../pages/ChatPage";
 
 const AppRoutes = () => {
     const { user } = useContext(AuthContext);
@@ -19,7 +23,25 @@ const AppRoutes = () => {
                 <Route
                     path="/"
                     element={
-                        user ? <Navigate to="/announcements" /> : <LoginPage />
+                        user ? <Navigate to="/hackathons" /> : <LoginPage />
+                    }
+                />
+                <Route
+                    path="/hackathons"
+                    element={
+                        user ? <HackathonPage /> : <Navigate to="/" />
+                    }
+                />
+                <Route
+                    path="/hackathons/:id"
+                    element={
+                        user ? <HackathonDetailsPage /> : <Navigate to="/" />
+                    }
+                />
+                <Route
+                    path="/hackathons/:hackathonId/rounds/:roundId"
+                    element={
+                        user ? <RoundDetailsPage /> : <Navigate to="/" />
                     }
                 />
                 <Route
@@ -39,27 +61,27 @@ const AppRoutes = () => {
                     }
                 />
                 <Route
-                    path="/members"
-                    element={
-                        user ? <UserManagementPage /> : <Navigate to="/" />
-                    }
-                />
-                <Route
                     path="/settings"
                     element={
                         user ? <SettingsPage /> : <Navigate to="/" />
                     }
                 />
                 <Route
-                    path="/hackathons"
-                    element={
-                        user ? <HackathonPage /> : <Navigate to="/" />
-                    }
-                />
-                <Route
                     path="/my-teams"
                     element={
                         user ? <MyTeamsPage /> : <Navigate to="/" />
+                    }
+                />
+                <Route
+                    path="/teams/:teamId/chat"
+                    element={
+                        user ? <ChatPage /> : <Navigate to="/" />
+                    }
+                />
+                <Route
+                    path="/admin/members"
+                    element={
+                        user?.role === "admin" ? <AdminMembersPage /> : <Navigate to="/" />
                     }
                 />
             </Routes>

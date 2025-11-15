@@ -1,5 +1,7 @@
 const User = require("../models/User");
 const Organization = require("../models/Organization");
+const HackathonRole = require("../models/HackathonRole");
+const { emitRoleUpdate } = require("../socket");
 
 class UserController {
     // Get all users grouped by role
@@ -24,7 +26,7 @@ class UserController {
                 return groups;
             }, {});
 
-            res.json({ groupedUsers, message: req.__("user.fetch_success") });
+            res.json({ users, groupedUsers, message: req.__("user.fetch_success") });
         } catch (err) {
             console.error(err);
             res.status(500).json({
@@ -55,6 +57,12 @@ class UserController {
             targetUser.role = role;
             await targetUser.save();
 
+            // Populate organization before emitting
+            await targetUser.populate("organization");
+
+            // Emit role update via WebSocket
+            emitRoleUpdate(targetUser._id.toString(), targetUser);
+
             res.json({
                 message: req.__("user.role_updated_successfully"),
                 user: targetUser,
@@ -63,6 +71,62 @@ class UserController {
             console.error(err);
             res.status(500).json({
                 message: req.__("user.role_update_failed"),
+                error: err.message,
+            });
+        }
+    }
+
+    // Get all users with their hackathon roles (admin only)
+    async getAllWithHackathonRoles(req, res) {
+        try {
+            const currentUser = await User.findById(req.user.id);
+            if (!currentUser) {
+                return res.status(404).json({ message: req.__("user.not_found") });
+            }
+
+            if (currentUser.role !== "admin") {
+                return res.status(403).json({ message: req.__("auth.forbidden_role") });
+            }
+
+            const organization = await Organization.findById(currentUser.organization);
+            if (!organization) {
+                return res.status(404).json({ message: req.__("organization.not_found") });
+            }
+
+            const users = await User.find({ organization: organization.id })
+                .populate("organization", "name")
+                .lean();
+
+            // Get all hackathon roles for these users
+            const userIds = users.map(u => u._id);
+            const hackathonRoles = await HackathonRole.find({
+                user: { $in: userIds },
+                role: "organizer"
+            })
+                .populate("hackathon", "title")
+                .lean();
+
+            // Map hackathon roles to users
+            const usersWithRoles = users.map(user => {
+                const organizerRoles = hackathonRoles
+                    .filter(hr => String(hr.user) === String(user._id))
+                    .map(hr => ({
+                        hackathonId: hr.hackathon?._id,
+                        hackathonTitle: hr.hackathon?.title,
+                        roleId: hr._id
+                    }));
+                
+                return {
+                    ...user,
+                    organizerRoles
+                };
+            });
+
+            res.json({ users: usersWithRoles, message: req.__("user.fetch_success") });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({
+                message: req.__("user.fetch_failed"),
                 error: err.message,
             });
         }

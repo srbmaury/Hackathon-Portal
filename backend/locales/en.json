@@ -56,7 +56,9 @@
 		"updated_successfully": "Hackathon updated successfully",
 		"update_failed": "Failed to update hackathon",
 		"deleted_successfully": "Hackathon deleted successfully",
-		"delete_failed": "Failed to delete hackathon"
+		"delete_failed": "Failed to delete hackathon",
+		"user_id_role_required": "User ID and role are required",
+		"invalid_role": "Invalid role. Must be organizer, judge, mentor, or participant"
 	},
 	"registration": {
 		"validation_failed": "Registration data validation failed",
@@ -74,5 +76,43 @@
 		"withdraw_failed": "Failed to withdraw from hackathon",
 		"update_success": "Team updated successfully",
 		"update_failed": "Failed to update team"
+	},
+	"round": {
+		"not_found": "Round not found",
+		"not_active": "Round is not active",
+		"not_started": "Round has not started yet",
+		"ended": "Round has ended",
+		"load_failed": "Failed to load round data",
+		"currently_active": "Currently Active"
+	},
+	"mentor": {
+		"assignment_success": "Teams successfully assigned to mentors",
+		"assignment_failed": "Failed to assign mentors to teams",
+		"openai_not_configured": "OpenAI API key is not configured"
+	},
+	"submission": {
+		"submitted": "Submission submitted successfully",
+		"updated": "Submission updated successfully",
+		"submit_failed": "Failed to submit",
+		"fetch_failed": "Failed to fetch submissions",
+		"update_failed": "Failed to update submission",
+		"not_found": "Submission not found",
+		"team_not_found": "Team not found. Please register for the hackathon first.",
+		"already_exists": "Submission already exists for this round"
+	},
+	"chat": {
+		"team_not_found": "Team not found",
+		"access_denied": "Access denied. You must be a team member or mentor.",
+		"content_required": "Message content is required",
+		"fetch_failed": "Failed to fetch messages",
+		"send_failed": "Failed to send message",
+		"message_sent": "Message sent successfully",
+		"no_messages_for_summary": "chat.no_messages_for_summary"
+	},
+	"reminder": {
+		"team_not_found": "reminder.team_not_found",
+		"access_denied": "reminder.access_denied",
+		"round_not_found": "reminder.round_not_found",
+		"sent_successfully": "reminder.sent_successfully"
 	}
 }

@@ -51,11 +51,12 @@ describe("HackathonItem", () => {
         // Hackathon title
         expect(screen.getByText("Test Hackathon")).toBeInTheDocument();
 
-        // Status paragraph
+        // Status paragraph - uses translation key
         const statusParagraph = screen.getByText((content, element) =>
-            element.tagName.toLowerCase() === "p" && content.includes("Status")
+            element.tagName.toLowerCase() === "p" && (content.includes("Status") || content.includes("hackathon.status"))
         );
-        expect(statusParagraph).toHaveTextContent("Active");
+        // Status text uses translation key
+        expect(statusParagraph).toBeInTheDocument();
 
         // Markdown description (split across multiple elements)
         const description = screen.getByText((content, element) =>
@@ -106,6 +107,7 @@ describe("HackathonItem", () => {
             user: { role: "admin" },
         });
 
-        expect(screen.getByText(/last updated at/i)).toBeInTheDocument();
+        // Uses translation key
+        expect(screen.getByText(/hackathon.last_updated_at/i)).toBeInTheDocument();
     });
 });

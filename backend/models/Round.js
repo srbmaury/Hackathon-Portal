@@ -13,6 +13,7 @@ const roundSchema = new mongoose.Schema(
             },
         ],
         isActive: { type: Boolean, default: true },
+        hideScores: { type: Boolean, default: false }, // If true, scores are hidden in public standings
     },
     { timestamps: true }
 );

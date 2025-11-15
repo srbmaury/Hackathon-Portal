@@ -9,6 +9,11 @@ router.post("/:hackathonId/register", protect, (req, res) =>
     registrationController.register(req, res)
 );
 
+// Get all teams for a hackathon (public - all authenticated users)
+router.get("/:hackathonId/teams/public", protect, (req, res) =>
+    registrationController.getTeams(req, res)
+);
+
 // Get all teams registered for a hackathon (admin/organizer)
 router.get("/:hackathonId/teams", protect, roleCheck("organizer", "admin"), (req, res) =>
     registrationController.getTeams(req, res)

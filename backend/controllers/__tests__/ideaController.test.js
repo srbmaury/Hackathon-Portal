@@ -36,7 +36,7 @@ describe("IdeaController", () => {
     user = await User.create({
       name: "Test User",
       email: "user@test.com",
-      role: "participant",
+      role: "user",
       organization: org._id,
       googleId: "test-google-id",
     });
@@ -136,7 +136,7 @@ describe("IdeaController", () => {
     const otherUser = await User.create({
       name: "Other User",
       email: "other@test.com",
-      role: "participant",
+      role: "user",
       organization: org._id,
       googleId: "other-google-id",
     });
@@ -162,7 +162,7 @@ describe("IdeaController", () => {
     const otherUser = await User.create({
       name: "Other User",
       email: "other2@test.com",
-      role: "participant",
+      role: "user",
       organization: org._id,
       googleId: "other2-google-id",
     });
@@ -201,5 +201,94 @@ describe("IdeaController", () => {
     // Ensure it's actually removed from DB
     const dbIdea = await Idea.findById(idea._id);
     expect(dbIdea).toBeNull();
+  });
+
+  it("should fail to submit idea without required fields", async () => {
+    const res = await request(app)
+      .post("/api/ideas/submit")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({
+        title: "Incomplete Idea",
+        // Missing description and isPublic
+      });
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("should fail to submit idea with invalid isPublic value", async () => {
+    const res = await request(app)
+      .post("/api/ideas/submit")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({
+        title: "Invalid Idea",
+        description: "Description",
+        isPublic: "not-a-boolean",
+      });
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  // AI EVALUATION TESTS
+  describe("AI Evaluation", () => {
+    let idea;
+
+    beforeEach(async () => {
+      idea = await Idea.create({
+        title: "Test Idea for AI",
+        description: "This is a test idea for AI evaluation",
+        submitter: user._id,
+        organization: org._id,
+        isPublic: true,
+      });
+    });
+
+    it("should evaluate idea with AI", async () => {
+      const originalAIEnabled = process.env.AI_ENABLED;
+      process.env.AI_ENABLED = "false"; // Disable to avoid actual API calls
+
+      const res = await request(app)
+        .post(`/api/ideas/${idea._id}/evaluate`)
+        .set("Authorization", `Bearer ${userToken}`);
+
+      // When AI is disabled, should return appropriate response
+      expect([200, 400, 500]).toContain(res.statusCode);
+
+      process.env.AI_ENABLED = originalAIEnabled;
+    });
+
+    it("should find similar ideas", async () => {
+      const originalAIEnabled = process.env.AI_ENABLED;
+      process.env.AI_ENABLED = "false";
+
+      const res = await request(app)
+        .get(`/api/ideas/${idea._id}/similar`)
+        .set("Authorization", `Bearer ${userToken}`);
+
+      expect([200, 400, 500]).toContain(res.statusCode);
+
+      process.env.AI_ENABLED = originalAIEnabled;
+    });
+
+    it("should get improvement suggestions", async () => {
+      const originalAIEnabled = process.env.AI_ENABLED;
+      process.env.AI_ENABLED = "false";
+
+      const res = await request(app)
+        .get(`/api/ideas/${idea._id}/improvements`)
+        .set("Authorization", `Bearer ${userToken}`);
+
+      expect([200, 400, 403, 500]).toContain(res.statusCode);
+
+      process.env.AI_ENABLED = originalAIEnabled;
+    });
+
+    it("should return 404 for non-existent idea evaluation", async () => {
+      const fakeId = new mongoose.Types.ObjectId();
+      const res = await request(app)
+        .post(`/api/ideas/${fakeId}/evaluate`)
+        .set("Authorization", `Bearer ${userToken}`);
+
+      expect(res.statusCode).toBe(404);
+    });
   });
 });

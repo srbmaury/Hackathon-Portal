@@ -39,3 +39,11 @@ export const updateTeam = async (hackathonId, teamId, updateData, token) => {
     });
     return res.data;
 };
+
+// Get all teams for a hackathon (public - all authenticated users can view)
+export const getHackathonTeams = async (hackathonId, token) => {
+    const res = await API.get(`/register/${hackathonId}/teams/public`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+};

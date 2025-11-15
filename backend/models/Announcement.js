@@ -14,6 +14,11 @@ const announcementSchema = new mongoose.Schema(
             ref: "Organization",
             required: true,
         },
+        hackathon: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Hackathon",
+            required: true,
+        },
     },
     { timestamps: true }
 );

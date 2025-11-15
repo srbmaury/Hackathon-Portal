@@ -40,64 +40,46 @@ const DashboardLayout = ({ children }) => {
     // Define menu items with role access
     const menuItems = [
         {
-            text: t("dashboard.announcements"),
-            icon: <HomeIcon />,
-            path: "/announcements",
-            roles: ["admin", "organizer", "participant", "judge", "mentor"],
+            text: t("dashboard.hackathons"),
+            icon: <EventNoteIcon />,
+            path: "/hackathons",
+            roles: ["user", "hackathon_creator", "admin"],
         },
         {
             text: t("dashboard.submit_idea"),
             icon: <LightbulbIcon />,
             path: "/ideas",
-            roles: ["participant", "organizer", "admin"],
+            roles: ["user", "hackathon_creator", "admin"],
         },
         {
             text: t("dashboard.public_ideas"),
             icon: <LightbulbOutlineIcon />,
             path: "/public-ideas",
-            roles: ["participant", "organizer", "admin", "judge", "mentor"],
-        },
-        {
-            text: t("dashboard.members"),
-            icon: <Person />,
-            path: "/members",
-            roles: ["participant", "organizer", "admin", "judge", "mentor"],
-        },
-        {
-            text: t("dashboard.hackathons"),
-            icon: <EventNoteIcon />,
-            path: "/hackathons",
-            roles: ["participant", "organizer", "admin", "judge", "mentor"],
-        },
-        {
-            text: t("dashboard.teams"),
-            icon: <GroupIcon />,
-            path: "/teams",
-            roles: ["organizer", "admin"],
+            roles: ["user", "hackathon_creator", "admin"],
         },
         {
             text: t("dashboard.my_teams"),
             icon: <GroupIcon />,
             path: "/my-teams",
-            roles: ["participant", "organizer", "admin"],
+            roles: ["user", "hackathon_creator", "admin"],
         },
         {
-            text: t("dashboard.my_participation"),
-            icon: <EventNoteIcon />,
-            path: "/participation",
-            roles: ["participant", "organizer", "admin"],
+            text: t("dashboard.all_members"),
+            icon: <Person />,
+            path: "/admin/members",
+            roles: ["admin"],
         },
         {
             text: t("dashboard.settings"),
             icon: <SettingsIcon />,
             path: "/settings",
-            roles: ["admin", "organizer", "participant"],
+            roles: ["user", "hackathon_creator", "admin"],
         },
         {
             text: t("dashboard.logout"),
             icon: <LogoutIcon />,
             action: logout,
-            roles: ["admin", "organizer", "participant", "judge", "mentor"],
+            roles: ["user", "hackathon_creator", "admin"],
         },
     ];
 

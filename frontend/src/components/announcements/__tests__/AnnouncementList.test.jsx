@@ -77,7 +77,8 @@ describe("AnnouncementList component", () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText(/no announcements/i)).toBeInTheDocument();
+      // The message uses translation key
+      expect(screen.getByText("announcement.no_announcements")).toBeInTheDocument();
     });
   });
 });
