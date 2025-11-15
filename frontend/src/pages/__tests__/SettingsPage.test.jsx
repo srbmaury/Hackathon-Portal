@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, vi, beforeEach } from "vitest";
 import SettingsPage from "../SettingsPage";
 import { SettingsContext } from "../../context/SettingsContext";
+import { AuthContext } from "../../context/AuthContext";
 import { I18nextProvider } from "react-i18next";
 import i18n from "../../i18n/i18n";
 
@@ -24,19 +25,34 @@ vi.mock("react-i18next", async (importOriginal) => {
 describe("SettingsPage", () => {
   let theme = "light";
   let language = "en";
-  let setTheme, setLanguage;
+  let setTheme, setLanguage, notificationsEnabled, setNotificationsEnabled;
 
   const renderPage = (initialTheme = "light", initialLanguage = "en") => {
     theme = initialTheme;
     language = initialLanguage;
+    notificationsEnabled = true;
     setTheme = vi.fn((val) => { theme = val; });
     setLanguage = vi.fn((val) => { language = val; });
+    setNotificationsEnabled = vi.fn((val) => { notificationsEnabled = val; });
+
+    const mockUser = { _id: "123", name: "Test User", notificationsEnabled: true };
+    const mockToken = "test-token";
+    const mockLogin = vi.fn();
 
     render(
       <I18nextProvider i18n={i18n}>
-        <SettingsContext.Provider value={{ theme, setTheme, language, setLanguage }}>
-          <SettingsPage />
-        </SettingsContext.Provider>
+        <AuthContext.Provider value={{ token: mockToken, user: mockUser, login: mockLogin }}>
+          <SettingsContext.Provider value={{ 
+            theme, 
+            setTheme, 
+            language, 
+            setLanguage,
+            notificationsEnabled,
+            setNotificationsEnabled
+          }}>
+            <SettingsPage />
+          </SettingsContext.Provider>
+        </AuthContext.Provider>
       </I18nextProvider>
     );
   };

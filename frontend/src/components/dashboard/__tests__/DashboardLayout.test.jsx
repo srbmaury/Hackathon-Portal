@@ -3,6 +3,8 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { vi } from "vitest";
 import DashboardLayout from "../DashboardLayout";
 import { AuthContext } from "../../../context/AuthContext";
+import { SettingsContext } from "../../../context/SettingsContext";
+import { NotificationContext } from "../../../context/NotificationContext";
 import { I18nextProvider } from "react-i18next";
 import i18n from "../../../i18n/i18n";
 import { MemoryRouter } from "react-router-dom";
@@ -27,16 +29,41 @@ describe("DashboardLayout", () => {
     // Use "user" role to match the roles array in DashboardLayout
     const user = { name: "Test User", role: "user" };
 
-    const renderComponent = (children = <div>Content</div>) =>
-        render(
+    const renderComponent = (children = <div>Content</div>) => {
+        const mockSettingsContext = {
+            theme: "light",
+            setTheme: vi.fn(),
+            language: "en",
+            setLanguage: vi.fn(),
+            notificationsEnabled: true,
+            setNotificationsEnabled: vi.fn(),
+        };
+
+        const mockNotificationContext = {
+            notifications: [],
+            unreadCount: 0,
+            loading: false,
+            fetchNotifications: vi.fn(),
+            markAsRead: vi.fn(),
+            markAllAsRead: vi.fn(),
+            removeNotification: vi.fn(),
+            refreshUnreadCount: vi.fn(),
+        };
+
+        return render(
             <MemoryRouter>
                 <I18nextProvider i18n={i18n}>
-                    <AuthContext.Provider value={{ user, logout: logoutMock }}>
-                        <DashboardLayout>{children}</DashboardLayout>
-                    </AuthContext.Provider>
+                    <SettingsContext.Provider value={mockSettingsContext}>
+                        <AuthContext.Provider value={{ user, logout: logoutMock }}>
+                            <NotificationContext.Provider value={mockNotificationContext}>
+                                <DashboardLayout>{children}</DashboardLayout>
+                            </NotificationContext.Provider>
+                        </AuthContext.Provider>
+                    </SettingsContext.Provider>
                 </I18nextProvider>
             </MemoryRouter>
         );
+    };
 
     beforeEach(() => {
         vi.clearAllMocks();
