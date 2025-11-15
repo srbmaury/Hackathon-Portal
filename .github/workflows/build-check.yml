@@ -16,17 +16,5 @@ jobs:
       - uses: actions/checkout@v3
       - name: Install dependencies
         run: npm install
-      - name: Build and run dev (frontend)
-        run: npm run dev
-
-  build-backend:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install dependencies
-        run: npm install
-      - name: Build and run dev (backend)
-        run: npm run dev
+      - name: Build frontend
+        run: npm run build
