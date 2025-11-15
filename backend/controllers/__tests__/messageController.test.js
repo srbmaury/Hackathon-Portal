@@ -25,25 +25,24 @@ import HackathonRole from "../../models/HackathonRole.js";
 import Idea from "../../models/Idea.js";
 import Round from "../../models/Round.js";
 
-// Mock chat assistant service
-vi.mock("../../services/chatAssistantService", () => {
-    const generateChatResponse = vi.fn().mockResolvedValue(null);
-    const isAIMentioned = vi.fn().mockReturnValue(false);
-    const extractQuestion = vi.fn().mockReturnValue("");
-    const generateMeetingSummary = vi.fn().mockResolvedValue({
-        summary: "Mock summary",
-        decisions: [],
-        actionItems: [],
-        topics: [],
-    });
-    
-    return {
-        generateChatResponse,
-        isAIMentioned,
-        extractQuestion,
-        generateMeetingSummary,
-    };
+// Create mock functions outside the factory so they can be accessed and modified
+const mockGenerateChatResponse = vi.fn().mockResolvedValue(null);
+const mockIsAIMentioned = vi.fn().mockReturnValue(false);
+const mockExtractQuestion = vi.fn().mockReturnValue("");
+const mockGenerateMeetingSummary = vi.fn().mockResolvedValue({
+    summary: "Mock summary",
+    decisions: [],
+    actionItems: [],
+    topics: [],
 });
+
+// Mock chat assistant service
+vi.mock("../../services/chatAssistantService", () => ({
+    generateChatResponse: mockGenerateChatResponse,
+    isAIMentioned: mockIsAIMentioned,
+    extractQuestion: mockExtractQuestion,
+    generateMeetingSummary: mockGenerateMeetingSummary,
+}));
 
 // Mock socket
 vi.mock("../../socket", () => ({
@@ -251,15 +250,14 @@ describe("MessageController", () => {
         });
 
         it("should trigger AI response when @AI is mentioned", async () => {
-            const { generateChatResponse, isAIMentioned, extractQuestion } = await import("../../services/chatAssistantService");
-            // Reset mocks
-            vi.mocked(isAIMentioned).mockClear();
-            vi.mocked(extractQuestion).mockClear();
-            vi.mocked(generateChatResponse).mockClear();
+            // Reset mocks using the stored references
+            mockIsAIMentioned.mockClear();
+            mockExtractQuestion.mockClear();
+            mockGenerateChatResponse.mockClear();
             
-            vi.mocked(isAIMentioned).mockReturnValue(true);
-            vi.mocked(extractQuestion).mockReturnValue("What is the deadline?");
-            vi.mocked(generateChatResponse).mockResolvedValue("The deadline is tomorrow.");
+            mockIsAIMentioned.mockReturnValue(true);
+            mockExtractQuestion.mockReturnValue("What is the deadline?");
+            mockGenerateChatResponse.mockResolvedValue("The deadline is tomorrow.");
 
             const res = await request(app)
                 .post(`/api/teams/${team._id}/messages`)
@@ -327,11 +325,9 @@ describe("MessageController", () => {
                 },
             ]);
 
-            // Get the mocked service using import (same pattern as reminderController test)
-            const { generateMeetingSummary } = await import("../../services/chatAssistantService");
-            // Override the mock for this test
-            vi.mocked(generateMeetingSummary).mockClear();
-            vi.mocked(generateMeetingSummary).mockResolvedValue({
+            // Override the mock for this test using the stored reference
+            mockGenerateMeetingSummary.mockClear();
+            mockGenerateMeetingSummary.mockResolvedValue({
                 summary: "Test summary",
                 decisions: ["Decision 1"],
                 actionItems: [{ person: "User", task: "Task 1" }],
