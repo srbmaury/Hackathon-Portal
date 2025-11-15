@@ -131,6 +131,61 @@ class UserController {
             });
         }
     }
+
+    // Get current user profile
+    async getMe(req, res) {
+        try {
+            const user = await User.findById(req.user.id)
+                .populate("organization", "name domain")
+                .lean();
+            
+            if (!user) {
+                return res.status(404).json({ message: req.__("user.not_found") });
+            }
+
+            res.json({ user, message: req.__("user.fetch_success") });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({
+                message: req.__("user.fetch_failed"),
+                error: err.message,
+            });
+        }
+    }
+
+    // Update current user profile
+    async updateMe(req, res) {
+        try {
+            const user = await User.findById(req.user.id);
+            if (!user) {
+                return res.status(404).json({ message: req.__("user.not_found") });
+            }
+
+            const { name, expertise } = req.body;
+
+            // Update allowed fields
+            if (name !== undefined) {
+                user.name = name;
+            }
+            if (expertise !== undefined) {
+                user.expertise = expertise;
+            }
+
+            await user.save();
+            await user.populate("organization", "name domain");
+
+            res.json({
+                message: req.__("user.profile_updated_successfully"),
+                user,
+            });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({
+                message: req.__("user.profile_update_failed"),
+                error: err.message,
+            });
+        }
+    }
 }
 
 module.exports = new UserController();

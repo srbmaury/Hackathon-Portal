@@ -1,5 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { vi } from "vitest";
 import DashboardLayout from "../DashboardLayout";
 import { AuthContext } from "../../../context/AuthContext";
 import { I18nextProvider } from "react-i18next";
@@ -17,7 +18,8 @@ vi.mock("@mui/icons-material", () => ({
     Menu: () => <div>MenuIcon</div>,
     Settings: () => <div>SettingsIcon</div>,
     LightbulbOutline: () => <div>LightbulbOutlineIcon</div>,
-    Person: () => <div>PersonIcon</div>, // ← add this
+    Person: () => <div>PersonIcon</div>,
+    AccountCircle: () => <div data-testid="AccountCircleIcon">AccountCircleIcon</div>,
 }));
 
 describe("DashboardLayout", () => {

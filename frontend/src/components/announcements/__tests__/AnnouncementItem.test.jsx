@@ -4,12 +4,30 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import AnnouncementItem from "../AnnouncementItem";
 import { vi } from "vitest";
 import * as api from "../../../api/announcements";
+import * as socketService from "../../../services/socket";
 import toast from "react-hot-toast";
 
 // Mock API functions
 vi.mock("../../../api/announcements", () => ({
   updateAnnouncement: vi.fn(),
-  deleteAnnouncement: vi.fn(),
+  formatAnnouncement: vi.fn(),
+}));
+
+// Mock socket service
+const mockSocket = {
+  on: vi.fn(),
+  off: vi.fn(),
+  emit: vi.fn(),
+  disconnect: vi.fn(),
+  connect: vi.fn(),
+  connected: true,
+  once: vi.fn(),
+};
+
+vi.mock("../../../services/socket", () => ({
+  getSocket: vi.fn(() => mockSocket),
+  initializeSocket: vi.fn(() => mockSocket),
+  disconnectSocket: vi.fn(),
 }));
 
 // Mock react-hot-toast
@@ -35,6 +53,15 @@ describe("AnnouncementItem component", () => {
     _id: "user1",
     role: "organizer",
   };
+
+  beforeEach(() => {
+    // Reset socket mock before each test
+    mockSocket.connected = true;
+    mockSocket.on.mockClear();
+    mockSocket.off.mockClear();
+    mockSocket.emit.mockClear();
+    mockSocket.once.mockClear();
+  });
 
   afterEach(() => {
     vi.clearAllMocks();
@@ -79,19 +106,31 @@ describe("AnnouncementItem component", () => {
     });
   });
 
-  test("opens delete confirmation dialog and calls deleteAnnouncement API", async () => {
-    api.deleteAnnouncement.mockResolvedValue({});
-    render(<AnnouncementItem announcement={announcement} user={user} />);
+  test("opens delete confirmation dialog and emits websocket delete event", async () => {
+    render(<AnnouncementItem announcement={announcement} user={user} onDeleted={vi.fn()} />);
 
     fireEvent.click(screen.getByTestId("DeleteIcon").closest("button"));
     expect(screen.getByText("announcement.confirm_delete")).toBeInTheDocument();
 
+    // Set up mock for websocket success event
+    const successHandler = vi.fn();
+    mockSocket.on.mockImplementation((event, handler) => {
+      if (event === "announcement_deleted") {
+        // Simulate success response
+        setTimeout(() => {
+          handler({ announcementId: "1" });
+        }, 100);
+      }
+    });
+
     fireEvent.click(screen.getByText("announcement.delete"));
 
     await waitFor(() => {
-      expect(api.deleteAnnouncement).toHaveBeenCalledWith("1", localStorage.getItem("token"));
-      expect(toast.success).toHaveBeenCalledWith("announcement.announcement_deleted");
-    });
+      expect(mockSocket.emit).toHaveBeenCalledWith("delete_announcement", {
+        announcementId: "1",
+        hackathonId: null,
+      });
+    }, { timeout: 2000 });
   });
 
   test("shows error toast on API failure during update", async () => {
@@ -106,15 +145,29 @@ describe("AnnouncementItem component", () => {
     });
   });
 
-  test("shows error toast on API failure during delete", async () => {
-    api.deleteAnnouncement.mockRejectedValue({ response: { data: { message: "Delete Failed!" } } });
-    render(<AnnouncementItem announcement={announcement} user={user} />);
+  test("shows error toast on websocket delete failure", async () => {
+    mockSocket.connected = true;
+    render(<AnnouncementItem announcement={announcement} user={user} onDeleted={vi.fn()} />);
 
     fireEvent.click(screen.getByTestId("DeleteIcon").closest("button"));
+    
+    // Set up mock for websocket error event
+    mockSocket.on.mockImplementation((event, handler) => {
+      if (event === "announcement_delete_error") {
+        // Simulate error response
+        setTimeout(() => {
+          handler({ announcementId: "1", error: "Delete Failed!" });
+        }, 100);
+      }
+    });
+
     fireEvent.click(screen.getByText("announcement.delete"));
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith("Delete Failed!");
-    });
+      expect(mockSocket.emit).toHaveBeenCalledWith("delete_announcement", {
+        announcementId: "1",
+        hackathonId: null,
+      });
+    }, { timeout: 2000 });
   });
 });

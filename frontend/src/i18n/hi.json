@@ -16,6 +16,7 @@
         "my_teams": "मेरी टीमें",
         "all_members": "सभी सदस्य",
         "my_participation": "मेरी भागीदारी",
+        "profile": "प्रोफ़ाइल",
         "settings": "सेटिंग्स",
         "logout": "लॉगआउट",
         "app_title": "हैकथॉन पोर्टल",
@@ -114,6 +115,23 @@
         "system": "सिस्टम",
         "language": "भाषा",
         "notifications": "सूचनाएं सक्षम करें"
+    },
+    "profile": {
+        "title": "मेरी प्रोफ़ाइल",
+        "description": "अपनी प्रोफ़ाइल जानकारी देखें और संपादित करें",
+        "name": "नाम",
+        "email": "ईमेल",
+        "organization": "संगठन",
+        "expertise": "विशेषज्ञता",
+        "expertise_placeholder": "उदाहरण: फुल स्टैक डेवलपर, डेटा साइंटिस्ट",
+        "no_expertise": "निर्दिष्ट नहीं",
+        "member_since": "सदस्यता तारीख",
+        "fetch_failed": "प्रोफ़ाइल प्राप्त करने में विफल",
+        "update_success": "प्रोफ़ाइल सफलतापूर्वक अपडेट की गई",
+        "update_failed": "प्रोफ़ाइल अपडेट करने में विफल",
+        "name_required": "नाम आवश्यक है",
+        "not_found": "प्रोफ़ाइल नहीं मिली",
+        "saving": "सहेजा जा रहा है..."
     },
     "user_management": {
         "name": "नाम",

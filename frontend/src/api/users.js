@@ -26,3 +26,19 @@ export const getUsersWithHackathonRoles = async (token) => {
     });
     return res.data.users || [];
 };
+
+// Get current user profile
+export const getMyProfile = async (token) => {
+    const res = await API.get("/users/me", {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data.user;
+};
+
+// Update current user profile
+export const updateMyProfile = async (profileData, token) => {
+    const res = await API.put("/users/me", profileData, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data.user;
+};

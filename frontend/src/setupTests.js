@@ -81,12 +81,18 @@ vi.mock('socket.io-client', () => ({
 }));
 
 // Mock socket service
+const mockSocket = {
+    on: vi.fn(),
+    off: vi.fn(),
+    emit: vi.fn(),
+    disconnect: vi.fn(),
+    connect: vi.fn(),
+    connected: true,
+    once: vi.fn(),
+};
+
 vi.mock('./services/socket.js', () => ({
-    initializeSocket: vi.fn(() => ({
-        on: vi.fn(),
-        off: vi.fn(),
-        emit: vi.fn(),
-        disconnect: vi.fn(),
-    })),
+    initializeSocket: vi.fn(() => mockSocket),
     disconnectSocket: vi.fn(),
+    getSocket: vi.fn(() => mockSocket),
 }));

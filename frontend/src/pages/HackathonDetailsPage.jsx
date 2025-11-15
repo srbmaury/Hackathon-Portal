@@ -52,7 +52,6 @@ import {
     getHackathonAnnouncements,
     createHackathonAnnouncement,
     updateHackathonAnnouncement,
-    deleteHackathonAnnouncement,
     assignMentorsToTeams,
 } from "../api/hackathons";
 import { getAllUsers } from "../api/users";
@@ -68,6 +67,7 @@ import { useTheme } from "@mui/material/styles";
 import MDEditor from "@uiw/react-md-editor";
 import InfoModal from "../components/common/InfoModal";
 import ConfirmDialog from "../components/common/ConfirmDialog";
+import { getSocket } from "../services/socket";
 
 const HackathonDetailsPage = () => {
     const { id } = useParams();
@@ -204,6 +204,56 @@ const HackathonDetailsPage = () => {
         };
     }, [id, user?._id, myRole]);
 
+    // Listen for real-time announcement updates via WebSocket
+    useEffect(() => {
+        const socket = getSocket();
+        
+        if (!socket) {
+            return;
+        }
+
+        // Handle announcement deletion
+        const handleAnnouncementDeleted = (data) => {
+            // Only process deletions for announcements in this hackathon
+            if (data.hackathonId && String(data.hackathonId) === String(id)) {
+                // Refresh announcements list
+                loadAnnouncements();
+            }
+        };
+
+        // Handle announcement creation
+        const handleAnnouncementCreated = (data) => {
+            // Only process creations for this hackathon
+            const announcementHackathonId = data.hackathonId || (data.announcement?.hackathon ? String(data.announcement.hackathon) : null);
+            if (announcementHackathonId && String(announcementHackathonId) === String(id)) {
+                // Refresh announcements list
+                loadAnnouncements();
+            }
+        };
+
+        // Handle announcement updates
+        const handleAnnouncementUpdated = (data) => {
+            // Only process updates for announcements in this hackathon
+            if (data.hackathonId && String(data.hackathonId) === String(id)) {
+                // Refresh announcements list
+                loadAnnouncements();
+            }
+        };
+
+        // Register socket listeners
+        socket.on("announcement_deleted", handleAnnouncementDeleted);
+        socket.on("announcement_created", handleAnnouncementCreated);
+        socket.on("announcement_updated", handleAnnouncementUpdated);
+
+        // Cleanup listeners on unmount
+        return () => {
+            socket.off("announcement_deleted", handleAnnouncementDeleted);
+            socket.off("announcement_created", handleAnnouncementCreated);
+            socket.off("announcement_updated", handleAnnouncementUpdated);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id]);
+
     const loadHackathonData = async () => {
         try {
             setLoading(true);
@@ -319,14 +369,9 @@ const HackathonDetailsPage = () => {
     };
 
     const handleDeleteAnnouncement = async (announcementId) => {
-        try {
-            await deleteHackathonAnnouncement(id, announcementId, token);
-            toast.success(t("announcement.announcement_deleted"));
-            loadAnnouncements();
-        } catch (error) {
-            console.error("Error deleting announcement:", error);
-            toast.error(error.response?.data?.message || t("announcement.delete_failed"));
-        }
+        // Note: This function is kept for backward compatibility but is no longer used
+        // Deletion is now handled via WebSocket in AnnouncementItem component
+        // The WebSocket listener above will refresh the list automatically
     };
 
     // Load user ideas and users when opening registration dialog
@@ -1002,7 +1047,6 @@ const HackathonDetailsPage = () => {
                                             announcement={announcement}
                                             user={user}
                                             onUpdated={(updatedData) => handleUpdateAnnouncement(announcement._id, updatedData)}
-                                            onDeleted={() => handleDeleteAnnouncement(announcement._id)}
                                             hackathonId={id}
                                             myRole={myRole}
                                         />

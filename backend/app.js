@@ -25,6 +25,7 @@ app.use(i18nMiddleware);
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/ideas', require('./routes/ideaRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/announcements', require('./routes/generalAnnouncementRoutes')); // General announcements
 app.use('/api/hackathons', require('./routes/hackathonRoutes')); // Includes nested /announcements routes
 app.use('/api/register', require('./routes/registrationRoutes'));
 app.use('/api/submissions', require('./routes/submissionRoutes'));
