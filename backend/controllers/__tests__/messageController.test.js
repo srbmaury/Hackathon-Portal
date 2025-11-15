@@ -27,10 +27,15 @@ import Round from "../../models/Round.js";
 
 // Mock chat assistant service
 vi.mock("../../services/chatAssistantService", () => ({
-    generateChatResponse: vi.fn(),
-    isAIMentioned: vi.fn(),
-    extractQuestion: vi.fn(),
-    generateMeetingSummary: vi.fn(),
+    generateChatResponse: vi.fn().mockResolvedValue(null),
+    isAIMentioned: vi.fn().mockReturnValue(false),
+    extractQuestion: vi.fn().mockReturnValue(""),
+    generateMeetingSummary: vi.fn().mockResolvedValue({
+        summary: "Mock summary",
+        decisions: [],
+        actionItems: [],
+        topics: [],
+    }),
 }));
 
 // Mock socket
@@ -315,10 +320,10 @@ describe("MessageController", () => {
                 },
             ]);
 
-            const { generateMeetingSummary } = await import("../../services/chatAssistantService");
-            // Reset and set mock
-            vi.mocked(generateMeetingSummary).mockClear();
-            vi.mocked(generateMeetingSummary).mockResolvedValue({
+            // Get the mocked service (it's already mocked at the top level)
+            const chatAssistantService = require("../../services/chatAssistantService");
+            // Override the mock for this test
+            chatAssistantService.generateMeetingSummary.mockResolvedValue({
                 summary: "Test summary",
                 decisions: ["Decision 1"],
                 actionItems: [{ person: "User", task: "Task 1" }],

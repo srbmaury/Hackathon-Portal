@@ -5,9 +5,21 @@ const Round = require("../models/Round");
 const Submission = require("../models/Submission");
 const Message = require("../models/Message");
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI only if API key is available (prevents errors during tests)
+let openai = null;
+function getOpenAI() {
+    if (!openai && process.env.OPENAI_API_KEY && process.env.AI_ENABLED !== "false") {
+        try {
+            openai = new OpenAI({
+                apiKey: process.env.OPENAI_API_KEY,
+            });
+        } catch (error) {
+            console.warn("Failed to initialize OpenAI:", error.message);
+            return null;
+        }
+    }
+    return openai;
+}
 
 /**
  * Generate AI assistant response for team chat questions
@@ -102,7 +114,11 @@ Instructions:
 
 Return ONLY the response text, no explanations or metadata.`;
 
-        const completion = await openai.chat.completions.create({
+        const openaiClient = getOpenAI();
+        if (!openaiClient) {
+            return null;
+        }
+        const completion = await openaiClient.chat.completions.create({
             model: process.env.AI_MODEL || "gpt-4o-mini",
             messages: [
                 {
@@ -230,7 +246,11 @@ Return ONLY a JSON object in this format:
 
 If any section has no items, use an empty array.`;
 
-        const completion = await openai.chat.completions.create({
+        const openaiClient = getOpenAI();
+        if (!openaiClient) {
+            return null;
+        }
+        const completion = await openaiClient.chat.completions.create({
             model: process.env.AI_MODEL || "gpt-4o-mini",
             messages: [
                 {
