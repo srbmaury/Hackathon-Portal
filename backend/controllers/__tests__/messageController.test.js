@@ -21,16 +21,16 @@ import HackathonRole from "../../models/HackathonRole.js";
 import Idea from "../../models/Idea.js";
 import Round from "../../models/Round.js";
 
-// Create mock functions outside the factory so they can be accessed and modified
-const mockGenerateChatResponse = vi.fn().mockResolvedValue(null);
-const mockIsAIMentioned = vi.fn().mockReturnValue(false);
-const mockExtractQuestion = vi.fn().mockReturnValue("");
-const mockGenerateMeetingSummary = vi.fn().mockResolvedValue({
+// Create mock functions using vi.hoisted() to ensure they're available when the mock factory runs
+const mockGenerateChatResponse = vi.hoisted(() => vi.fn().mockResolvedValue(null));
+const mockIsAIMentioned = vi.hoisted(() => vi.fn().mockReturnValue(false));
+const mockExtractQuestion = vi.hoisted(() => vi.fn().mockReturnValue(""));
+const mockGenerateMeetingSummary = vi.hoisted(() => vi.fn().mockResolvedValue({
     summary: "Mock summary",
     decisions: [],
     actionItems: [],
     topics: [],
-});
+}));
 
 // Mock chat assistant service - MUST be before app import
 vi.mock("../../services/chatAssistantService", () => ({
