@@ -11,10 +11,6 @@ import request from "supertest";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const app = require("../../app");
-
 import { connectTestDb, clearDb, closeTestDb } from "../../setup/testDb.js";
 import User from "../../models/User.js";
 import Organization from "../../models/Organization.js";
@@ -36,7 +32,7 @@ const mockGenerateMeetingSummary = vi.fn().mockResolvedValue({
     topics: [],
 });
 
-// Mock chat assistant service
+// Mock chat assistant service - MUST be before app import
 vi.mock("../../services/chatAssistantService", () => ({
     generateChatResponse: mockGenerateChatResponse,
     isAIMentioned: mockIsAIMentioned,
@@ -44,10 +40,16 @@ vi.mock("../../services/chatAssistantService", () => ({
     generateMeetingSummary: mockGenerateMeetingSummary,
 }));
 
-// Mock socket
+// Mock socket - MUST be before app import
 vi.mock("../../socket", () => ({
     emitMessage: vi.fn(),
 }));
+
+// Import app AFTER mocks are set up
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const app = require("../../app");
+
 
 describe("MessageController", () => {
     let org, adminUser, user, organizer, hackathon, team, round;
@@ -337,6 +339,12 @@ describe("MessageController", () => {
             const res = await request(app)
                 .post(`/api/teams/${team._id}/messages/summary`)
                 .set("Authorization", `Bearer ${userToken}`);
+
+            // If the test fails, check if the mock was called
+            if (res.status !== 200) {
+                // The mock should have been called - if not, the real function was used
+                expect(mockGenerateMeetingSummary).toHaveBeenCalled();
+            }
 
             expect(res.status).toBe(200);
             expect(res.body.summary).toBeTruthy();
