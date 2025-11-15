@@ -9,17 +9,18 @@ A comprehensive platform for managing hackathons, teams, ideas, and participants
 - **Team Registration**: Register teams for hackathons with team members and ideas
 - **Idea Management**: Submit and manage ideas for hackathons (public/private)
 - **User Management**: Multi-tier role system with organization-level and hackathon-specific roles
-- **Profile Management**: User profile page with editable name and expertise fields
-- **Real-time Updates**: WebSocket integration for live updates on hackathons, teams, and user roles
+- **Profile Management**: User profile page with editable name, expertise, avatar, and privacy settings. API endpoints for profile fetch/update.
+- **Notification System**: In-app notification center with unread/read status, prioritization, and real-time updates for announcements, deadlines, and other activities. API endpoints for notification fetch/update.
+- **Real-time Updates**: WebSocket integration for live updates on hackathons, teams, user roles, and notifications
 - **Internationalization**: Full support for multiple languages (English, Hindi, Telugu) with comprehensive translations
 - **Submissions & Rounds**: Submit entries for hackathon rounds with file uploads and links
 - **Scoring System**: Judges can score submissions (0-100) and provide feedback
 - **Standings**: Public leaderboard with optional score hiding for participants
-- **Announcements**: General and hackathon-specific announcements with markdown support
+- **Announcements**: General and hackathon-specific announcements with markdown support. Users receive notifications for new, updated, and deleted announcements in hackathons they participate in.
 - **File Uploads**: Cloudinary integration for submission files (PPT, PDF, ZIP, etc.)
 - **Modal-based UI**: Professional modals for confirmations, errors, and information display
 - **Team Chat**: Real-time messaging for teams with AI assistant support
-- **Automated Reminders**: Smart deadline reminders for at-risk teams
+- **Automated Reminders**: Smart deadline reminders for at-risk teams and submission deadline notifications
 
 ### Role System
 - **Organization-Level Roles**:
@@ -52,6 +53,8 @@ A comprehensive platform for managing hackathons, teams, ideas, and participants
 - Role-based submission access (participants submit, judges/organizers view all)
 - Update submissions before round deadline
 
+- **Submission Deadline Notifications**: Automatic notifications when a submission deadline is near (e.g., 24 hours before).
+
 ### Announcements
 - General announcements (organization-wide)
 - Hackathon-specific announcements
@@ -59,6 +62,8 @@ A comprehensive platform for managing hackathons, teams, ideas, and participants
 - Create, edit, and delete announcements (organizers/admins)
 - Real-time announcement updates
 - AI-powered formatting and enhancement
+
+- **Announcement Notifications**: Users receive notifications for new, updated, and deleted announcements in hackathons they participate in.
 
 ### Team Chat & Messaging
 - Real-time team chat with WebSocket support
@@ -284,6 +289,8 @@ https://yaml-visualizer.netlify.app/shared/SO0aomWdoe
 - Full internationalization (English, Hindi, Telugu)
 - Real-time form validation with visual feedback
 
+- **Frontend Notification Center**: UI component for viewing and marking notifications as read. Immediate UI updates for announcements and notifications without requiring a page refresh.
+
 ### Real-time Features
 - Live updates for hackathon changes
 - Real-time team updates
@@ -291,6 +298,8 @@ https://yaml-visualizer.netlify.app/shared/SO0aomWdoe
 - Hackathon role assignment/removal updates
 - WebSocket-based synchronization
 - Automatic UI updates without page refresh
+
+- Real-time notification updates for announcements and deadlines
 
 ## 🧪 Testing
 
@@ -384,11 +393,16 @@ npm run test:coverage # Run with coverage report
 - `POST /api/reminders/team/:teamId/round/:roundId/send` - Send reminder to team
 
 ### Users
+
 - `GET /api/users` - Get all users (admin)
 - `GET /api/users/me` - Get current user profile
 - `PUT /api/users/me` - Update current user profile
 - `GET /api/users/with-roles` - Get users with hackathon roles (admin)
 - `PUT /api/users/:id/role` - Update user role (organizer/admin)
+
+### Notifications
+- `GET /api/notifications` - Get all notifications for current user
+- `PUT /api/notifications/:id/read` - Mark notification as read
 
 ## 🌐 Internationalization
 

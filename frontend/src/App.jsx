@@ -1,6 +1,7 @@
 import React from "react";
 import AppRoutes from "./routes/AppRoutes";
 import { AuthProvider } from "./context/AuthContext";
+import { NotificationProvider } from "./context/NotificationContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "react-hot-toast";
 import { useTheme } from "@mui/material/styles";
@@ -46,7 +47,9 @@ function App() {
     return (
         <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
             <AuthProvider>
-                <AppContent />
+                <NotificationProvider>
+                    <AppContent />
+                </NotificationProvider>
             </AuthProvider>
         </GoogleOAuthProvider>
     );

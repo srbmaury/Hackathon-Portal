@@ -54,6 +54,7 @@ vi.mock('react-i18next', async () => {
             },
         }),
         I18nextProvider: ({ children }) => children,
+        initReactI18next: { type: "3rdParty" },
     };
 });
 

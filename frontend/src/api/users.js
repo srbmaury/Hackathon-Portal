@@ -42,3 +42,11 @@ export const updateMyProfile = async (profileData, token) => {
     });
     return res.data.user;
 };
+
+// Update notification preferences
+export const updateNotificationPreferences = async (notificationsEnabled, token) => {
+    const res = await API.put("/users/me", { notificationsEnabled }, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data.user;
+};

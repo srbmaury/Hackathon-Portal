@@ -5,11 +5,16 @@ import AnnouncementsPage from "../AnnouncementsPage";
 import { AuthContext } from "../../context/AuthContext";
 
 // Mock i18n
-vi.mock("react-i18next", () => ({
-  useTranslation: () => ({
-    t: (key) => key, // returns the key itself
-  }),
-}));
+vi.mock("react-i18next", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (key) => key, // returns the key itself
+    }),
+    initReactI18next: { type: "3rdParty" },
+  };
+});
 
 // Mock AnnouncementCreate and AnnouncementList to avoid deep rendering
 vi.mock("../../components/announcements/AnnouncementCreate", () => ({

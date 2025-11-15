@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import {
     Container,
     Typography,
@@ -10,15 +10,60 @@ import {
     FormControlLabel,
     Radio,
     Switch,
+    CircularProgress,
 } from "@mui/material";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import { SettingsContext } from "../context/SettingsContext.jsx";
+import { AuthContext } from "../context/AuthContext.jsx";
 import { useTranslation } from "react-i18next";
+import { updateNotificationPreferences, getMyProfile } from "../api/users";
+import toast from "react-hot-toast";
 
 const SettingsPage = () => {
-    const { theme, setTheme, language, setLanguage } =
+    const { theme, setTheme, language, setLanguage, notificationsEnabled, setNotificationsEnabled } =
         useContext(SettingsContext);
+    const { token, user, login } = useContext(AuthContext);
     const { t } = useTranslation();
+    const [loading, setLoading] = useState(false);
+
+    // Sync notification preference from user profile on mount
+    useEffect(() => {
+        if (user?.notificationsEnabled !== undefined) {
+            setNotificationsEnabled(user.notificationsEnabled);
+            localStorage.setItem("notificationsEnabled", user.notificationsEnabled.toString());
+        }
+    }, [user, setNotificationsEnabled]);
+
+    const handleNotificationToggle = async (event) => {
+        const newValue = event.target.checked;
+        setNotificationsEnabled(newValue);
+        localStorage.setItem("notificationsEnabled", newValue.toString());
+
+        // Update on backend
+        if (token) {
+            setLoading(true);
+            try {
+                const updatedUser = await updateNotificationPreferences(newValue, token);
+                // Update AuthContext with the updated user data
+                if (updatedUser) {
+                    const updatedAuthUser = {
+                        ...user,
+                        notificationsEnabled: updatedUser.notificationsEnabled,
+                    };
+                    login(updatedAuthUser, token);
+                }
+                toast.success(t("settings.notification_updated") || "Notification preferences updated");
+            } catch (error) {
+                console.error("Error updating notification preferences:", error);
+                toast.error(t("settings.notification_update_failed") || "Failed to update notification preferences");
+                // Revert on error
+                setNotificationsEnabled(!newValue);
+                localStorage.setItem("notificationsEnabled", (!newValue).toString());
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
 
     return (
         <DashboardLayout>
@@ -134,7 +179,15 @@ const SettingsPage = () => {
                                 <Typography variant="h6" fontWeight={600}>
                                     {t("settings.notifications")}
                                 </Typography>
-                                <Switch color="primary" />
+                                {loading ? (
+                                    <CircularProgress size={24} />
+                                ) : (
+                                    <Switch
+                                        color="primary"
+                                        checked={notificationsEnabled}
+                                        onChange={handleNotificationToggle}
+                                    />
+                                )}
                             </Stack>
                         </CardContent>
                     </Card>

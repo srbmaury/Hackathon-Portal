@@ -114,7 +114,20 @@
         "dark": "Dark",
         "system": "System",
         "language": "Language",
-        "notifications": "Enable Notifications"
+        "notifications": "Enable Notifications",
+        "notification_updated": "Notification preferences updated",
+        "notification_update_failed": "Failed to update notification preferences"
+    },
+    "notifications": {
+        "title": "Notifications",
+        "no_notifications": "No notifications",
+        "mark_all_read": "Mark all read",
+        "new_hackathon": "New Hackathon Available",
+        "hackathon_update": "Hackathon Updated",
+        "hackathon_deadline": "Deadline Reminder",
+        "team_message": "New Team Message",
+        "round_deadline": "Round Deadline Approaching",
+        "announcement": "New Announcement"
     },
     "profile": {
         "title": "My Profile",

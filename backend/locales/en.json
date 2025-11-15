@@ -1,120 +1,128 @@
 {
-	"auth": {
-		"forbidden": "You do not have permission to perform this action",
-		"organization_not_onboarded": "Your organization is not onboarded. Please contact admin.",
-		"login_success": "Login successful",
-		"google_login_failed": "Google authentication failed",
-		"no_token": "No authentication token provided",
-		"user_not_found": "User not found",
-		"invalid_token": "Invalid or expired token",
-		"unauthorized": "You are not authorized to perform this action",
-		"forbidden_role": "Forbidden role"
-	},
-	"user": {
-		"not_found": "User not found",
-		"fetch_success": "Users fetched successfully",
-		"fetch_failed": "Failed to fetch users",
-		"cannot_modify_admin": "Cannot modify admin user role",
-		"role_updated_successfully": "User role updated successfully",
-		"role_update_failed": "Failed to update user role",
-		"profile_updated_successfully": "Profile updated successfully",
-		"profile_update_failed": "Failed to update profile"
-	},
-	"announcement": {
-		"get_failed": "Failed to fetch announcements",
-		"created_successfully": "Announcement created successfully",
-		"creation_failed": "Failed to create announcement",
-		"not_found": "Announcement not found",
-		"updated_successfully": "Announcement updated successfully",
-		"update_failed": "Failed to update announcement",
-		"deleted_successfully": "Announcement deleted successfully",
-		"delete_failed": "Failed to delete announcement"
-	},
-	"idea": {
-		"get_failed": "Failed to fetch ideas",
-		"organization_not_found": "Organization not found",
-		"submitted_successfully": "Idea submitted successfully",
-		"submission_failed": "Failed to submit idea",
-		"get_my_failed": "Failed to fetch your ideas",
-		"updated_successfully": "Idea updated successfully",
-		"update_failed": "Failed to update idea",
-		"deleted_successfully": "Idea deleted successfully",
-		"delete_failed": "Failed to delete idea",
-		"not_found": "Idea not found"
-	},
-	"organization": {
-		"not_found": "Organization not found"
-	},
-	"hackathon": {
-		"validation_failed": "Hackathon data validation failed",
-		"created_successfully": "Hackathon created successfully",
-		"creation_failed": "Failed to create hackathon",
-		"fetch_success": "Hackathons fetched successfully",
-		"fetch_failed": "Failed to fetch hackathons",
-		"invalid_id": "Invalid hackathon ID",
-		"not_found": "Hackathon not found",
-		"access_denied": "You are not authorized to perform this action",
-		"access_denied_inactive": "Cannot register for an inactive hackathon",
-		"updated_successfully": "Hackathon updated successfully",
-		"update_failed": "Failed to update hackathon",
-		"deleted_successfully": "Hackathon deleted successfully",
-		"delete_failed": "Failed to delete hackathon",
-		"user_id_role_required": "User ID and role are required",
-		"invalid_role": "Invalid role. Must be organizer, judge, mentor, or participant"
-	},
-	"registration": {
-		"validation_failed": "Registration data validation failed",
-		"hackathon_closed": "Hackathon registration is closed",
-		"invalid_team_size": "Invalid team size",
-		"already_registered": "You are already registered for this hackathon",
-		"success": "Registration successful",
-		"failed": "Failed to register for hackathon",
-		"fetch_success": "Registrations fetched successfully",
-		"fetch_failed": "Failed to fetch registrations",
-		"team_not_found": "Team not found",
-		"mismatched_hackathon": "Team does not belong to this hackathon",
-		"access_denied": "You are not authorized to view this team",
-		"withdraw_success": "Successfully withdrawn from hackathon",
-		"withdraw_failed": "Failed to withdraw from hackathon",
-		"update_success": "Team updated successfully",
-		"update_failed": "Failed to update team"
-	},
-	"round": {
-		"not_found": "Round not found",
-		"not_active": "Round is not active",
-		"not_started": "Round has not started yet",
-		"ended": "Round has ended",
-		"load_failed": "Failed to load round data",
-		"currently_active": "Currently Active"
-	},
-	"mentor": {
-		"assignment_success": "Teams successfully assigned to mentors",
-		"assignment_failed": "Failed to assign mentors to teams",
-		"openai_not_configured": "OpenAI API key is not configured"
-	},
-	"submission": {
-		"submitted": "Submission submitted successfully",
-		"updated": "Submission updated successfully",
-		"submit_failed": "Failed to submit",
-		"fetch_failed": "Failed to fetch submissions",
-		"update_failed": "Failed to update submission",
-		"not_found": "Submission not found",
-		"team_not_found": "Team not found. Please register for the hackathon first.",
-		"already_exists": "Submission already exists for this round"
-	},
-	"chat": {
-		"team_not_found": "Team not found",
-		"access_denied": "Access denied. You must be a team member or mentor.",
-		"content_required": "Message content is required",
-		"fetch_failed": "Failed to fetch messages",
-		"send_failed": "Failed to send message",
-		"message_sent": "Message sent successfully",
-		"no_messages_for_summary": "chat.no_messages_for_summary"
-	},
-	"reminder": {
-		"team_not_found": "reminder.team_not_found",
-		"access_denied": "reminder.access_denied",
-		"round_not_found": "reminder.round_not_found",
-		"sent_successfully": "reminder.sent_successfully"
-	}
-}
+    "auth": {
+      "forbidden": "You do not have permission to perform this action",
+      "organization_not_onboarded": "Your organization is not onboarded. Please contact admin.",
+      "login_success": "Login successful",
+      "google_login_failed": "Google authentication failed",
+      "no_token": "No authentication token provided",
+      "user_not_found": "User not found",
+      "invalid_token": "Invalid or expired token",
+      "unauthorized": "You are not authorized to perform this action",
+      "forbidden_role": "Forbidden role"
+    },
+    "user": {
+      "not_found": "User not found",
+      "fetch_success": "Users fetched successfully",
+      "fetch_failed": "Failed to fetch users",
+      "cannot_modify_admin": "Cannot modify admin user role",
+      "role_updated_successfully": "User role updated successfully",
+      "role_update_failed": "Failed to update user role",
+      "profile_updated_successfully": "Profile updated successfully",
+      "profile_update_failed": "Failed to update profile"
+    },
+    "announcement": {
+      "get_failed": "Failed to fetch announcements",
+      "created_successfully": "Announcement created successfully",
+      "creation_failed": "Failed to create announcement",
+      "not_found": "Announcement not found",
+      "updated_successfully": "Announcement updated successfully",
+      "update_failed": "Failed to update announcement",
+      "deleted_successfully": "Announcement deleted successfully",
+      "delete_failed": "Failed to delete announcement"
+    },
+    "idea": {
+      "get_failed": "Failed to fetch ideas",
+      "organization_not_found": "Organization not found",
+      "submitted_successfully": "Idea submitted successfully",
+      "submission_failed": "Failed to submit idea",
+      "get_my_failed": "Failed to fetch your ideas",
+      "updated_successfully": "Idea updated successfully",
+      "update_failed": "Failed to update idea",
+      "deleted_successfully": "Idea deleted successfully",
+      "delete_failed": "Failed to delete idea",
+      "not_found": "Idea not found"
+    },
+    "organization": {
+      "not_found": "Organization not found"
+    },
+    "hackathon": {
+      "validation_failed": "Hackathon data validation failed",
+      "created_successfully": "Hackathon created successfully",
+      "creation_failed": "Failed to create hackathon",
+      "fetch_success": "Hackathons fetched successfully",
+      "fetch_failed": "Failed to fetch hackathons",
+      "invalid_id": "Invalid hackathon ID",
+      "not_found": "Hackathon not found",
+      "access_denied": "You are not authorized to perform this action",
+      "access_denied_inactive": "Cannot register for an inactive hackathon",
+      "updated_successfully": "Hackathon updated successfully",
+      "update_failed": "Failed to update hackathon",
+      "deleted_successfully": "Hackathon deleted successfully",
+      "delete_failed": "Failed to delete hackathon",
+      "user_id_role_required": "User ID and role are required",
+      "invalid_role": "Invalid role. Must be organizer, judge, mentor, or participant"
+    },
+    "registration": {
+      "validation_failed": "Registration data validation failed",
+      "hackathon_closed": "Hackathon registration is closed",
+      "invalid_team_size": "Invalid team size",
+      "already_registered": "You are already registered for this hackathon",
+      "success": "Registration successful",
+      "failed": "Failed to register for hackathon",
+      "fetch_success": "Registrations fetched successfully",
+      "fetch_failed": "Failed to fetch registrations",
+      "team_not_found": "Team not found",
+      "mismatched_hackathon": "Team does not belong to this hackathon",
+      "access_denied": "You are not authorized to view this team",
+      "withdraw_success": "Successfully withdrawn from hackathon",
+      "withdraw_failed": "Failed to withdraw from hackathon",
+      "update_success": "Team updated successfully",
+      "update_failed": "Failed to update team"
+    },
+    "round": {
+      "not_found": "Round not found",
+      "not_active": "Round is not active",
+      "not_started": "Round has not started yet",
+      "ended": "Round has ended",
+      "load_failed": "Failed to load round data",
+      "currently_active": "Currently Active"
+    },
+    "mentor": {
+      "assignment_success": "Teams successfully assigned to mentors",
+      "assignment_failed": "Failed to assign mentors to teams",
+      "openai_not_configured": "OpenAI API key is not configured"
+    },
+    "submission": {
+      "submitted": "Submission submitted successfully",
+      "updated": "Submission updated successfully",
+      "submit_failed": "Failed to submit",
+      "fetch_failed": "Failed to fetch submissions",
+      "update_failed": "Failed to update submission",
+      "not_found": "Submission not found",
+      "team_not_found": "Team not found. Please register for the hackathon first.",
+      "already_exists": "Submission already exists for this round"
+    },
+    "chat": {
+      "team_not_found": "Team not found",
+      "access_denied": "Access denied. You must be a team member or mentor.",
+      "content_required": "Message content is required",
+      "fetch_failed": "Failed to fetch messages",
+      "send_failed": "Failed to send message",
+      "message_sent": "Message sent successfully",
+      "no_messages_for_summary": "No messages available for summary"
+    },
+    "reminder": {
+      "team_not_found": "Team not found",
+      "access_denied": "Access denied. You are not authorized to send a reminder",
+      "round_not_found": "Round not found",
+      "sent_successfully": "Reminder sent successfully"
+    },
+    "notification": {
+      "update_failed": "Failed to update notification",
+      "deleted": "Notification deleted",
+      "not_found": "Notification not found",
+      "all_marked_read": "All notifications marked as read",
+      "marked_read": "Notification marked as read"
+    }
+  }
+  

@@ -7,6 +7,7 @@ const { emitHackathonUpdate, emitHackathonRoleUpdate } = require("../socket");
 const { assignTeamsToMentors } = require("../services/mentorAssignmentService");
 const { formatHackathonDescription } = require("../services/hackathonFormattingService");
 const { suggestRound, suggestMultipleRounds } = require("../services/roundSuggestionService");
+const { notifyNewHackathon, notifyHackathonUpdate } = require("../services/notificationService");
 
 class HackathonController {
     /**
@@ -73,6 +74,12 @@ class HackathonController {
                 "created",
                 populatedHackathon
             );
+
+            // Create notifications for new hackathon
+            notifyNewHackathon(
+                populatedHackathon,
+                req.user.organization._id.toString()
+            ).catch(err => console.error("Error creating notifications:", err));
 
             res.status(201).json({
                 message: req.__("hackathon.created_successfully"),
@@ -281,6 +288,13 @@ class HackathonController {
                 "updated",
                 updatedHackathon
             );
+
+            // Create notifications for hackathon update (participants only)
+            notifyHackathonUpdate(
+                updatedHackathon,
+                req.user.organization._id.toString(),
+                true // participantsOnly = true
+            ).catch(err => console.error("Error creating notifications:", err));
 
             res.json({
                 message: req.__("hackathon.updated_successfully"),

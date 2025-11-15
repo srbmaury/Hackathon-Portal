@@ -16,6 +16,10 @@ const userSchema = new mongoose.Schema(
             ref: "Organization",
             required: true,
         },
+        notificationsEnabled: {
+            type: Boolean,
+            default: true,
+        },
     },
     { timestamps: true }
 );

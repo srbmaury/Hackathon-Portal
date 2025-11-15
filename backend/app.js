@@ -31,5 +31,6 @@ app.use('/api/register', require('./routes/registrationRoutes'));
 app.use('/api/submissions', require('./routes/submissionRoutes'));
 app.use('/api/teams', require('./routes/messageRoutes'));
 app.use('/api/reminders', require('./routes/reminderRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 
 module.exports = app;

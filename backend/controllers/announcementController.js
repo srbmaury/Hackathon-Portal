@@ -2,6 +2,7 @@ const Announcement = require("../models/Announcement");
 const Hackathon = require("../models/Hackathon");
 const { formatAnnouncement, enhanceAnnouncement } = require("../services/announcementFormattingService");
 const { emitAnnouncementCreated, emitAnnouncementUpdated } = require("../socket");
+const { notifyHackathonAnnouncement } = require("../services/notificationService");
 
 class AnnouncementController {
     /**
@@ -135,6 +136,13 @@ class AnnouncementController {
             // Emit WebSocket event for real-time updates
             const orgId = req.user.organization._id ? String(req.user.organization._id) : String(req.user.organization);
             emitAnnouncementCreated(orgId, populatedAnnouncement, hackathonId);
+
+            // Create notifications for hackathon participants
+            notifyHackathonAnnouncement(
+                populatedAnnouncement,
+                hackathon._id || hackathonId,
+                orgId
+            ).catch(err => console.error("Error creating announcement notifications:", err));
 
             res.status(201).json({
                 message: req.__("announcement.created_successfully"),
