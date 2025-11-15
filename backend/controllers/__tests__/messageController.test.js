@@ -26,17 +26,24 @@ import Idea from "../../models/Idea.js";
 import Round from "../../models/Round.js";
 
 // Mock chat assistant service
-vi.mock("../../services/chatAssistantService", () => ({
-    generateChatResponse: vi.fn().mockResolvedValue(null),
-    isAIMentioned: vi.fn().mockReturnValue(false),
-    extractQuestion: vi.fn().mockReturnValue(""),
-    generateMeetingSummary: vi.fn().mockResolvedValue({
+vi.mock("../../services/chatAssistantService", () => {
+    const generateChatResponse = vi.fn().mockResolvedValue(null);
+    const isAIMentioned = vi.fn().mockReturnValue(false);
+    const extractQuestion = vi.fn().mockReturnValue("");
+    const generateMeetingSummary = vi.fn().mockResolvedValue({
         summary: "Mock summary",
         decisions: [],
         actionItems: [],
         topics: [],
-    }),
-}));
+    });
+    
+    return {
+        generateChatResponse,
+        isAIMentioned,
+        extractQuestion,
+        generateMeetingSummary,
+    };
+});
 
 // Mock socket
 vi.mock("../../socket", () => ({
@@ -320,10 +327,11 @@ describe("MessageController", () => {
                 },
             ]);
 
-            // Get the mocked service (it's already mocked at the top level)
-            const chatAssistantService = require("../../services/chatAssistantService");
+            // Get the mocked service using import (same pattern as reminderController test)
+            const { generateMeetingSummary } = await import("../../services/chatAssistantService");
             // Override the mock for this test
-            chatAssistantService.generateMeetingSummary.mockResolvedValue({
+            vi.mocked(generateMeetingSummary).mockClear();
+            vi.mocked(generateMeetingSummary).mockResolvedValue({
                 summary: "Test summary",
                 decisions: ["Decision 1"],
                 actionItems: [{ person: "User", task: "Task 1" }],
