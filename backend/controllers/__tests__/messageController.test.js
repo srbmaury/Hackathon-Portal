@@ -21,7 +21,8 @@ import HackathonRole from "../../models/HackathonRole.js";
 import Idea from "../../models/Idea.js";
 import Round from "../../models/Round.js";
 
-// Create mock functions using vi.hoisted() to ensure they're available when the mock factory runs
+// Mock chat assistant service - MUST be before app import
+// Create hoisted mock functions that will be reused
 const mockGenerateChatResponse = vi.hoisted(() => vi.fn().mockResolvedValue(null));
 const mockIsAIMentioned = vi.hoisted(() => vi.fn().mockReturnValue(false));
 const mockExtractQuestion = vi.hoisted(() => vi.fn().mockReturnValue(""));
@@ -32,7 +33,6 @@ const mockGenerateMeetingSummary = vi.hoisted(() => vi.fn().mockResolvedValue({
     topics: [],
 }));
 
-// Mock chat assistant service - MUST be before app import
 vi.mock("../../services/chatAssistantService", () => ({
     generateChatResponse: mockGenerateChatResponse,
     isAIMentioned: mockIsAIMentioned,
@@ -252,14 +252,17 @@ describe("MessageController", () => {
         });
 
         it("should trigger AI response when @AI is mentioned", async () => {
-            // Reset mocks using the stored references
-            mockIsAIMentioned.mockClear();
-            mockExtractQuestion.mockClear();
-            mockGenerateChatResponse.mockClear();
+            // Get the mocked service module
+            const chatAssistantService = await import("../../services/chatAssistantService");
             
-            mockIsAIMentioned.mockReturnValue(true);
-            mockExtractQuestion.mockReturnValue("What is the deadline?");
-            mockGenerateChatResponse.mockResolvedValue("The deadline is tomorrow.");
+            // Reset mocks
+            vi.mocked(chatAssistantService.isAIMentioned).mockClear();
+            vi.mocked(chatAssistantService.extractQuestion).mockClear();
+            vi.mocked(chatAssistantService.generateChatResponse).mockClear();
+            
+            vi.mocked(chatAssistantService.isAIMentioned).mockReturnValue(true);
+            vi.mocked(chatAssistantService.extractQuestion).mockReturnValue("What is the deadline?");
+            vi.mocked(chatAssistantService.generateChatResponse).mockResolvedValue("The deadline is tomorrow.");
 
             const res = await request(app)
                 .post(`/api/teams/${team._id}/messages`)
@@ -327,7 +330,7 @@ describe("MessageController", () => {
                 },
             ]);
 
-            // Override the mock for this test using the stored reference
+            // Set up the mock return value using the hoisted mock function
             mockGenerateMeetingSummary.mockClear();
             mockGenerateMeetingSummary.mockResolvedValue({
                 summary: "Test summary",
@@ -340,20 +343,16 @@ describe("MessageController", () => {
                 .post(`/api/teams/${team._id}/messages/summary`)
                 .set("Authorization", `Bearer ${userToken}`);
 
-            // If the test fails, check if the mock was called
-            if (res.status !== 200) {
-                // The mock should have been called - if not, the real function was used
-                expect(mockGenerateMeetingSummary).toHaveBeenCalled();
-            }
-
             expect(res.status).toBe(200);
             expect(res.body.summary).toBeTruthy();
-            // The mock might not work because the service is already imported
-            // Just verify that a summary object was returned with expected structure
-            expect(res.body.summary).toBeTruthy();
-            // If it's an object, check it has some properties
+            
+            // Verify the mock was called
+            expect(mockGenerateMeetingSummary).toHaveBeenCalled();
+            
+            // Verify the response structure
             if (typeof res.body.summary === 'object') {
                 expect(res.body.summary).toHaveProperty('summary');
+                expect(res.body.summary.summary).toBe("Test summary");
             }
         });
 
