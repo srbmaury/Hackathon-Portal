@@ -25,28 +25,31 @@ import Idea from "../../models/Idea.js";
 import Submission from "../../models/Submission.js";
 import HackathonRole from "../../models/HackathonRole.js";
 
-// Mock multer-storage-cloudinary to avoid actual Cloudinary uploads in tests
-vi.mock("multer-storage-cloudinary", () => {
-    const mockStorage = {
-        _handleFile: (req, file, cb) => {
-            // Simulate file upload - set req.file.path to a mock URL
-            req.file = {
-                fieldname: "file",
-                originalname: file.originalname,
-                encoding: "7bit",
-                mimetype: file.mimetype,
-                path: "https://cloudinary.com/test-file.jpg",
-                size: 1024,
+// Mock upload middleware to avoid actual Cloudinary uploads in tests
+vi.mock("../../middleware/upload.js", () => {
+    const mockMulter = {
+        single: (fieldName) => {
+            return (req, res, next) => {
+                // Simulate file upload - set req.file to a mock file object
+                req.file = {
+                    fieldname: fieldName || "file",
+                    originalname: "test-file.jpg",
+                    encoding: "7bit",
+                    mimetype: "image/jpeg",
+                    path: "https://cloudinary.com/test-file.jpg",
+                    filename: "test-file",
+                    size: 1024,
+                    cloudinary: {
+                        secure_url: "https://cloudinary.com/test-file.jpg",
+                        public_id: "test-file",
+                    },
+                };
+                next();
             };
-            cb(null, req.file);
-        },
-        _removeFile: (req, file, cb) => {
-            cb(null);
         },
     };
-    return {
-        CloudinaryStorage: vi.fn(() => mockStorage),
-    };
+    // Match CommonJS module.exports structure
+    return mockMulter;
 });
 
 describe("SubmissionController", () => {
