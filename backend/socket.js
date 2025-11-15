@@ -226,6 +226,15 @@ const emitAnnouncementUpdated = (organizationId, announcementId, updates, hackat
     }
 };
 
+// Function to emit notification to a specific user
+const emitNotification = (userId, notification) => {
+    if (io) {
+        io.to(`user:${userId}`).emit("notification", {
+            notification,
+        });
+    }
+};
+
 module.exports = { 
     initializeSocket, 
     emitRoleUpdate,
@@ -236,5 +245,6 @@ module.exports = {
     emitAnnouncementDeleted,
     emitAnnouncementCreated,
     emitAnnouncementUpdated,
+    emitNotification,
 };
 

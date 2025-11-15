@@ -6,7 +6,6 @@ import IdeaSubmissionPage from "../pages/IdeaSubmissionPage";
 import PublicIdeasPage from "../pages/PublicIdeasPage";
 import AnnouncementsPage from "../pages/AnnouncementsPage";
 import SettingsPage from "../pages/SettingsPage";
-import UserManagementPage from "../pages/UserManagementPage";
 import AdminMembersPage from "../pages/AdminMembersPage";
 import HackathonPage from "../pages/HackathonPage";
 import HackathonDetailsPage from "../pages/HackathonDetailsPage";

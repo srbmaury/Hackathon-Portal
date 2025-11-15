@@ -1,118 +1,128 @@
 {
-	"auth": {
-		"forbidden": "आपको यह कार्य करने की अनुमति नहीं है",
-		"organization_not_onboarded": "आपका संगठन ऑनबोर्ड नहीं है। कृपया एडमिन से संपर्क करें।",
-		"login_success": "लॉगिन सफल रहा",
-		"google_login_failed": "गूगल प्रमाणीकरण विफल रहा",
-		"no_token": "कोई प्रमाणीकरण टोकन प्रदान नहीं किया गया",
-		"user_not_found": "उपयोगकर्ता नहीं मिला",
-		"invalid_token": "अमान्य या समाप्त टोकन",
-		"unauthorized": "आपको यह कार्य करने की अनुमति नहीं है",
-		"forbidden_role": "इस भूमिका के लिए अनुमति नहीं है"
-	},
-	"user": {
-		"not_found": "उपयोगकर्ता नहीं मिला",
-		"fetch_success": "उपयोगकर्ता सफलतापूर्वक प्राप्त किए गए",
-		"fetch_failed": "उपयोगकर्ता प्राप्त करने में विफल",
-		"cannot_modify_admin": "एडमिन की भूमिका बदली नहीं जा सकती",
-		"role_updated_successfully": "उपयोगकर्ता की भूमिका सफलतापूर्वक अपडेट की गई",
-		"role_update_failed": "भूमिका अपडेट करने में विफल"
-	},
-	"announcement": {
-		"get_failed": "घोषणाएँ प्राप्त करने में विफल",
-		"created_successfully": "घोषणा सफलतापूर्वक बनाई गई",
-		"creation_failed": "घोषणा बनाने में विफल",
-		"not_found": "घोषणा नहीं मिली",
-		"updated_successfully": "घोषणा सफलतापूर्वक अपडेट की गई",
-		"update_failed": "घोषणा अपडेट करने में विफल",
-		"deleted_successfully": "घोषणा सफलतापूर्वक हटाई गई",
-		"delete_failed": "घोषणा हटाने में विफल"
-	},
-	"idea": {
-		"get_failed": "आइडियाज प्राप्त करने में विफल",
-		"organization_not_found": "संगठन नहीं मिला",
-		"submitted_successfully": "आइडिया सफलतापूर्वक सबमिट किया गया",
-		"submission_failed": "आइडिया सबमिट करने में विफल",
-		"get_my_failed": "आपके आइडियाज प्राप्त करने में विफल",
-		"updated_successfully": "आइडिया सफलतापूर्वक अपडेट किया गया",
-		"update_failed": "आइडिया अपडेट करने में विफल",
-		"deleted_successfully": "आइडिया सफलतापूर्वक हटाया गया",
-		"delete_failed": "आइडिया हटाने में विफल",
-		"not_found": "आइडिया नहीं मिला"
-	},
-	"organization": {
-		"not_found": "संगठन नहीं मिला"
-	},
-	"hackathon": {
-		"validation_failed": "हैकाथॉन डेटा मान्यता विफल",
-		"created_successfully": "हैकाथॉन सफलतापूर्वक बनाया गया",
-		"creation_failed": "हैकाथॉन बनाने में विफल",
-		"fetch_success": "हैकाथॉन्स सफलतापूर्वक प्राप्त किए गए",
-		"fetch_failed": "हैकाथॉन्स प्राप्त करने में विफल",
-		"invalid_id": "अमान्य हैकाथॉन ID",
-		"not_found": "हैकाथॉन नहीं मिला",
-		"access_denied": "आपको यह कार्य करने की अनुमति नहीं है",
-		"access_denied_inactive": "निष्क्रिय हैकाथॉन के लिए पंजीकरण नहीं किया जा सकता",
-		"updated_successfully": "हैकाथॉन सफलतापूर्वक अपडेट किया गया",
-		"update_failed": "हैकाथॉन अपडेट करने में विफल",
-		"deleted_successfully": "हैकाथॉन सफलतापूर्वक हटाया गया",
-		"delete_failed": "हैकाथॉन हटाने में विफल",
-		"user_id_role_required": "उपयोगकर्ता ID और भूमिका आवश्यक है",
-		"invalid_role": "अमान्य भूमिका। आयोजक, न्यायाधीश, मेंटर, या प्रतिभागी होना चाहिए"
-	},
-	"registration": {
-		"validation_failed": "पंजीकरण डेटा मान्यता विफल",
-		"hackathon_closed": "हैकाथॉन पंजीकरण बंद है",
-		"invalid_team_size": "अमान्य टीम आकार",
-		"already_registered": "आप पहले से इस हैकाथॉन में पंजीकृत हैं",
-		"success": "पंजीकरण सफल",
-		"failed": "हैकाथॉन के लिए पंजीकरण विफल",
-		"fetch_success": "पंजीकरण सफलतापूर्वक प्राप्त किए गए",
-		"fetch_failed": "पंजीकरण प्राप्त करने में विफल",
-		"team_not_found": "टीम नहीं मिली",
-		"mismatched_hackathon": "टीम इस हैकाथॉन से संबंधित नहीं है",
-		"access_denied": "आपको इस टीम को देखने की अनुमति नहीं है",
-		"withdraw_success": "हैकाथॉन से सफलतापूर्वक नाम वापस लिया गया",
-		"withdraw_failed": "नाम वापस लेने में विफल",
-		"update_success": "टीम सफलतापूर्वक अपडेट की गई",
-		"update_failed": "टीम अपडेट करने में विफल"
-	},
-	"mentor": {
-		"assignment_success": "टीमें सफलतापूर्वक मेंटर्स को असाइन की गईं",
-		"assignment_failed": "टीमों को मेंटर्स असाइन करने में विफल",
-		"openai_not_configured": "OpenAI API कुंजी कॉन्फ़िगर नहीं की गई है"
-	},
-	"submission": {
-		"submitted": "सबमिशन सफलतापूर्वक जमा किया गया",
-		"team_not_found": "टीम नहीं मिली। कृपया पहले हैकाथॉन के लिए पंजीकरण करें।",
-		"updated": "सबमिशन सफलतापूर्वक अपडेट किया गया",
-		"not_found": "सबमिशन नहीं मिला",
-		"submit_failed": "सबमिट करने में विफल",
-		"fetch_failed": "सबमिशन प्राप्त करने में विफल",
-		"update_failed": "सबमिशन अपडेट करने में विफल",
-		"already_exists": "इस राउंड के लिए सबमिशन पहले से मौजूद है"
-	},
-	"round": {
-		"not_found": "राउंड नहीं मिला",
-		"not_active": "राउंड सक्रिय नहीं है",
-		"not_started": "राउंड अभी तक शुरू नहीं हुआ है",
-		"ended": "राउंड समाप्त हो गया है",
-		"load_failed": "राउंड डेटा लोड करने में विफल",
-		"currently_active": "वर्तमान में सक्रिय"
-	},
-	"chat": {
-		"team_not_found": "टीम नहीं मिली",
-		"access_denied": "पहुंच अस्वीकृत। आपको टीम सदस्य या मेंटर होना चाहिए।",
-		"content_required": "संदेश सामग्री आवश्यक है",
-		"fetch_failed": "संदेश लाने में विफल",
-		"send_failed": "संदेश भेजने में विफल",
-		"message_sent": "संदेश सफलतापूर्वक भेजा गया",
-		"no_messages_for_summary": "chat.no_messages_for_summary"
-	},
-	"reminder": {
-		"team_not_found": "reminder.team_not_found",
-		"access_denied": "reminder.access_denied",
-		"round_not_found": "reminder.round_not_found",
-		"sent_successfully": "reminder.sent_successfully"
-	}
-}
+    "auth": {
+      "forbidden": "आपको यह कार्य करने की अनुमति नहीं है",
+      "organization_not_onboarded": "आपका संगठन ऑनबोर्ड नहीं है। कृपया एडमिन से संपर्क करें।",
+      "login_success": "लॉगिन सफल",
+      "google_login_failed": "Google प्रमाणीकरण विफल",
+      "no_token": "कोई प्रमाणीकरण टोकन प्रदान नहीं किया गया",
+      "user_not_found": "उपयोगकर्ता नहीं मिला",
+      "invalid_token": "टोकन अमान्य या समाप्त हो गया है",
+      "unauthorized": "आप इस क्रिया को करने के लिए अधिकृत नहीं हैं",
+      "forbidden_role": "प्रतिबंधित भूमिका"
+    },
+    "user": {
+      "not_found": "उपयोगकर्ता नहीं मिला",
+      "fetch_success": "उपयोगकर्ता सफलतापूर्वक प्राप्त किए गए",
+      "fetch_failed": "उपयोगकर्ताओं को प्राप्त करने में विफल",
+      "cannot_modify_admin": "एडमिन उपयोगकर्ता की भूमिका परिवर्तित नहीं की जा सकती",
+      "role_updated_successfully": "उपयोगकर्ता की भूमिका सफलतापूर्वक अपडेट की गई",
+      "role_update_failed": "उपयोगकर्ता की भूमिका अपडेट करने में विफल",
+      "profile_updated_successfully": "प्रोफ़ाइल सफलतापूर्वक अपडेट की गई",
+      "profile_update_failed": "प्रोफ़ाइल अपडेट करने में विफल"
+    },
+    "announcement": {
+      "get_failed": "घोषणाएँ प्राप्त करने में विफल",
+      "created_successfully": "घोषणा सफलतापूर्वक बनाई गई",
+      "creation_failed": "घोषणा बनाने में विफल",
+      "not_found": "घोषणा नहीं मिली",
+      "updated_successfully": "घोषणा सफलतापूर्वक अपडेट की गई",
+      "update_failed": "घोषणा अपडेट करने में विफल",
+      "deleted_successfully": "घोषणा सफलतापूर्वक हटाई गई",
+      "delete_failed": "घोषणा हटाने में विफल"
+    },
+    "idea": {
+      "get_failed": "आइडिया प्राप्त करने में विफल",
+      "organization_not_found": "संगठन नहीं मिला",
+      "submitted_successfully": "आइडिया सफलतापूर्वक सबमिट किया गया",
+      "submission_failed": "आइडिया सबमिट करने में विफल",
+      "get_my_failed": "आपके आइडिया प्राप्त करने में विफल",
+      "updated_successfully": "आइडिया सफलतापूर्वक अपडेट किया गया",
+      "update_failed": "आइडिया अपडेट करने में विफल",
+      "deleted_successfully": "आइडिया सफलतापूर्वक हटाया गया",
+      "delete_failed": "आइडिया हटाने में विफल",
+      "not_found": "आइडिया नहीं मिला"
+    },
+    "organization": {
+      "not_found": "संगठन नहीं मिला"
+    },
+    "hackathon": {
+      "validation_failed": "हैकाथॉन डेटा सत्यापन विफल",
+      "created_successfully": "हैकाथॉन सफलतापूर्वक बनाया गया",
+      "creation_failed": "हैकाथॉन बनाने में विफल",
+      "fetch_success": "हैकाथॉन सफलतापूर्वक प्राप्त किए गए",
+      "fetch_failed": "हैकाथॉन प्राप्त करने में विफल",
+      "invalid_id": "अमान्य हैकाथॉन ID",
+      "not_found": "हैकाथॉन नहीं मिला",
+      "access_denied": "आप इस क्रिया को करने के लिए अधिकृत नहीं हैं",
+      "access_denied_inactive": "निष्क्रिय हैकाथॉन के लिए पंजीकरण नहीं कर सकते",
+      "updated_successfully": "हैकाथॉन सफलतापूर्वक अपडेट किया गया",
+      "update_failed": "हैकाथॉन अपडेट करने में विफल",
+      "deleted_successfully": "हैकाथॉन सफलतापूर्वक हटाया गया",
+      "delete_failed": "हैकाथॉन हटाने में विफल",
+      "user_id_role_required": "यूज़र ID और भूमिका आवश्यक है",
+      "invalid_role": "अमान्य भूमिका। Organizer, Judge, Mentor या Participant होना आवश्यक है"
+    },
+    "registration": {
+      "validation_failed": "पंजीकरण डेटा सत्यापन विफल",
+      "hackathon_closed": "हैकाथॉन पंजीकरण बंद है",
+      "invalid_team_size": "अमान्य टीम आकार",
+      "already_registered": "आप पहले ही इस हैकाथॉन के लिए पंजीकृत हैं",
+      "success": "पंजीकरण सफल",
+      "failed": "पंजीकरण करने में विफल",
+      "fetch_success": "पंजीकरण सफलतापूर्वक प्राप्त किए गए",
+      "fetch_failed": "पंजीकरण प्राप्त करने में विफल",
+      "team_not_found": "टीम नहीं मिली",
+      "mismatched_hackathon": "टीम इस हैकाथॉन से संबंधित नहीं है",
+      "access_denied": "आपको इस टीम को देखने की अनुमति नहीं है",
+      "withdraw_success": "हैकाथॉन से सफलतापूर्वक बाहर निकले",
+      "withdraw_failed": "हैकाथॉन से बाहर निकलने में विफल",
+      "update_success": "टीम सफलतापूर्वक अपडेट की गई",
+      "update_failed": "टीम अपडेट करने में विफल"
+    },
+    "round": {
+      "not_found": "राउंड नहीं मिला",
+      "not_active": "राउंड सक्रिय नहीं है",
+      "not_started": "राउंड अभी शुरू नहीं हुआ है",
+      "ended": "राउंड समाप्त हो गया है",
+      "load_failed": "राउंड डेटा लोड करने में विफल",
+      "currently_active": "वर्तमान में सक्रिय"
+    },
+    "mentor": {
+      "assignment_success": "मेंटर्स को टीमों का सफलतापूर्वक असाइनमेंट",
+      "assignment_failed": "मेंटर्स को असाइनमेंट करने में विफल",
+      "openai_not_configured": "OpenAI API Key कॉन्फ़िगर नहीं है"
+    },
+    "submission": {
+      "submitted": "सबमिशन सफलतापूर्वक सबमिट किया गया",
+      "updated": "सबमिशन सफलतापूर्वक अपडेट किया गया",
+      "submit_failed": "सबमिट करने में विफल",
+      "fetch_failed": "सबमिशन प्राप्त करने में विफल",
+      "update_failed": "सबमिशन अपडेट करने में विफल",
+      "not_found": "सबमिशन नहीं मिला",
+      "team_not_found": "टीम नहीं मिली। कृपया पहले हैकाथॉन के लिए पंजीकरण करें।",
+      "already_exists": "इस राउंड के लिए सबमिशन पहले से मौजूद है"
+    },
+    "chat": {
+      "team_not_found": "टीम नहीं मिली",
+      "access_denied": "एक्सेस denied। आपको टीम सदस्य या मेंटर होना चाहिए।",
+      "content_required": "संदेश सामग्री आवश्यक है",
+      "fetch_failed": "संदेश प्राप्त करने में विफल",
+      "send_failed": "संदेश भेजने में विफल",
+      "message_sent": "संदेश सफलतापूर्वक भेजा गया",
+      "no_messages_for_summary": "सारांश के लिए कोई संदेश उपलब्ध नहीं"
+    },
+    "reminder": {
+      "team_not_found": "टीम नहीं मिली",
+      "access_denied": "आप रिमाइंडर भेजने के लिए अधिकृत नहीं हैं",
+      "round_not_found": "राउंड नहीं मिला",
+      "sent_successfully": "रिमाइंडर सफलतापूर्वक भेजा गया"
+    },
+    "notification": {
+      "update_failed": "सूचना अपडेट करने में विफल",
+      "deleted": "सूचना हटाई गई",
+      "not_found": "सूचना नहीं मिली",
+      "all_marked_read": "सभी सूचनाएँ पढ़ी गईं के रूप में मार्क की गईं",
+      "marked_read": "सूचना पढ़ी गई के रूप में मार्क की गई"
+    }
+  }
+  

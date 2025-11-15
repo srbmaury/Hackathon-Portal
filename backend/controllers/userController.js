@@ -161,7 +161,7 @@ class UserController {
                 return res.status(404).json({ message: req.__("user.not_found") });
             }
 
-            const { name, expertise } = req.body;
+            const { name, expertise, notificationsEnabled } = req.body;
 
             // Update allowed fields
             if (name !== undefined) {
@@ -169,6 +169,9 @@ class UserController {
             }
             if (expertise !== undefined) {
                 user.expertise = expertise;
+            }
+            if (notificationsEnabled !== undefined) {
+                user.notificationsEnabled = notificationsEnabled;
             }
 
             await user.save();

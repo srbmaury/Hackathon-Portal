@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { initializeSocket, disconnectSocket } from "../services/socket";
+import { getMyProfile } from "../api/users";
 
 export const AuthContext = createContext();
 
@@ -79,11 +80,29 @@ export const AuthProvider = ({ children }) => {
         }
     }, [token]);
 
-    const login = (userData, authToken) => {
+    const login = async (userData, authToken) => {
         setUser(userData);
         setToken(authToken);
         localStorage.setItem("user", JSON.stringify(userData));
         localStorage.setItem("token", authToken);
+        
+        // Fetch full user profile to ensure we have all fields including notificationsEnabled
+        if (authToken) {
+            try {
+                const fullProfile = await getMyProfile(authToken);
+                if (fullProfile) {
+                    const updatedUser = {
+                        ...userData,
+                        ...fullProfile,
+                    };
+                    setUser(updatedUser);
+                    localStorage.setItem("user", JSON.stringify(updatedUser));
+                }
+            } catch (error) {
+                console.error("Error fetching user profile:", error);
+                // Continue with login even if profile fetch fails
+            }
+        }
     };
 
     const logout = () => {

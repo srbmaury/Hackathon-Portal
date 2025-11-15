@@ -27,6 +27,7 @@ import {
 import { AuthContext } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import NotificationBell from "../common/NotificationBell";
 
 const drawerWidth = 240;
 
@@ -135,9 +136,10 @@ const DashboardLayout = ({ children }) => {
                     >
                         <MenuIcon />
                     </IconButton>
-                    <Typography variant="h6" noWrap component="div">
+                    <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
                         {t("dashboard.welcome", { name: user.name })}
                     </Typography>
+                    <NotificationBell />
                 </Toolbar>
             </AppBar>
 

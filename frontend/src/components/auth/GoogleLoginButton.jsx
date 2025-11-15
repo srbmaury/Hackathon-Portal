@@ -12,7 +12,7 @@ const GoogleLoginButton = () => {
     const handleSuccess = async (credentialResponse) => {
         try {
             const data = await googleLogin(credentialResponse.credential);
-            login(data.user, data.token);
+            await login(data.user, data.token);
             toast.success(t("auth.login_success"));
         } catch (err) {
             console.error(err);

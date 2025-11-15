@@ -9,9 +9,14 @@ export const SettingsProvider = ({ children }) => {
     // Load saved settings or defaults
     const savedTheme = localStorage.getItem("theme") || "light";
     const savedLanguage = localStorage.getItem("language") || "en";
+    const savedNotificationsEnabled = localStorage.getItem("notificationsEnabled");
+    const notificationsEnabledDefault = savedNotificationsEnabled !== null 
+        ? savedNotificationsEnabled === "true" 
+        : true; // Default to true if not set
 
     const [themeMode, setThemeMode] = useState(savedTheme);
     const [language, setLanguage] = useState(savedLanguage);
+    const [notificationsEnabled, setNotificationsEnabled] = useState(notificationsEnabledDefault);
     const [systemTheme, setSystemTheme] = useState(
         window.matchMedia("(prefers-color-scheme: dark)").matches
             ? "dark"
@@ -39,6 +44,12 @@ export const SettingsProvider = ({ children }) => {
         setLanguage(lang);
         localStorage.setItem("language", lang);
         i18n.changeLanguage(lang); // ✅ dynamically change language
+    };
+
+    // Update notification preferences
+    const handleSetNotificationsEnabled = (enabled) => {
+        setNotificationsEnabled(enabled);
+        localStorage.setItem("notificationsEnabled", enabled.toString());
     };
 
     // Initialize i18n on mount
@@ -70,6 +81,8 @@ export const SettingsProvider = ({ children }) => {
                 setTheme: handleSetTheme,
                 language,
                 setLanguage: handleSetLanguage, // ✅ use updated handler
+                notificationsEnabled,
+                setNotificationsEnabled: handleSetNotificationsEnabled,
             }}
         >
             <ThemeProvider theme={muiTheme}>

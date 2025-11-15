@@ -3,6 +3,7 @@ const Team = require("../models/Team");
 const HackathonRole = require("../models/HackathonRole");
 const { emitMessage } = require("../socket");
 const { generateChatResponse, isAIMentioned, extractQuestion, generateMeetingSummary } = require("../services/chatAssistantService");
+const { notifyTeamMessage } = require("../services/notificationService");
 
 class MessageController {
     /**
@@ -137,6 +138,14 @@ class MessageController {
                 eventType: "new_message",
                 message,
             });
+
+            // Create notifications for team members (except sender)
+            notifyTeamMessage(
+                teamId,
+                userId,
+                content.trim(),
+                team.organization._id.toString()
+            ).catch(err => console.error("Error creating notifications:", err));
 
             // Check if message explicitly mentions AI and generate response (async, non-blocking)
             if (isAIMentioned(content.trim())) {
