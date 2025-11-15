@@ -1,3 +1,11 @@
+// Add role to user in hackathon
+export const addHackathonRole = async (hackathonId, userId, role, token) => {
+    const res = await API.post(`/hackathons/${hackathonId}/roles`, 
+        { userId, role },
+        { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return res.data;
+};
 import API from "./apiConfig";
 
 // Create Hackathon
@@ -5,7 +13,7 @@ export const createHackathon = async (hackathon, token) => {
     const res = await API.post("/hackathons", hackathon, {
         headers: { Authorization: `Bearer ${token}` },
     });
-    return res.data;
+    return res && typeof res.data !== 'undefined' ? res.data : undefined;
 };
 
 // Get All Hackathons

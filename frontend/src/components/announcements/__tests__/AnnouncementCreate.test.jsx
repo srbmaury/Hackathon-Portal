@@ -32,6 +32,24 @@ vi.mock("@uiw/react-md-editor", () => {
       />
     ),
   };
+  it('shows fallback success toast if response.message is missing', async () => {
+    const titleInput = screen.getByRole('textbox', { name: /title/i });
+    fireEvent.change(titleInput, { target: { value: 'Title' } });
+    const messageTextarea = screen.getByTestId('md-editor');
+    fireEvent.change(messageTextarea, { target: { value: 'Message' } });
+
+    // Mock API success with no message
+    api.createAnnouncement.mockResolvedValueOnce({});
+
+    const createBtn = screen.getByRole('button', { name: /create/i });
+    fireEvent.click(createBtn);
+
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith(
+        expect.stringContaining('announcement.announcement_created')
+      );
+    });
+  });
 });
 
 describe("AnnouncementCreate component", () => {
