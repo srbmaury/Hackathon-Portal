@@ -38,6 +38,62 @@ vi.mock("react-hot-toast", () => {
       error: vi.fn(),
     },
   };
+  test('renders without user prop (no edit/delete)', () => {
+    render(<AnnouncementItem announcement={{ ...announcement }} />);
+    expect(screen.getByText('Test Announcement')).toBeInTheDocument();
+    expect(screen.queryByTestId('EditIcon')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('DeleteIcon')).not.toBeInTheDocument();
+  });
+
+  test('renders with missing createdBy and createdAt', () => {
+    render(<AnnouncementItem announcement={{ ...announcement, createdBy: undefined, createdAt: undefined }} user={user} />);
+    expect(screen.getByText('Test Announcement')).toBeInTheDocument();
+  });
+
+  test('renders long markdown message', () => {
+    render(<AnnouncementItem announcement={{ ...announcement, message: '# Heading\n**Bold**\nText' }} user={user} />);
+    expect(screen.getByText('Test Announcement')).toBeInTheDocument();
+    expect(screen.getByText(/Heading|Bold|Text/)).toBeInTheDocument();
+  });
+
+  test('does not show edit/delete for non-organizer', () => {
+    render(<AnnouncementItem announcement={announcement} user={{ ...user, role: 'participant' }} />);
+    expect(screen.queryByTestId('EditIcon')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('DeleteIcon')).not.toBeInTheDocument();
+  });
+
+  test('websocket disconnect disables delete', async () => {
+    mockSocket.connected = false;
+    render(<AnnouncementItem announcement={announcement} user={user} />);
+    fireEvent.click(screen.getByTestId('DeleteIcon').closest('button'));
+    expect(screen.queryByText('announcement.delete')).not.toBeInTheDocument();
+  });
+
+  test('update with empty title shows error toast', async () => {
+    render(<AnnouncementItem announcement={announcement} user={user} />);
+    fireEvent.click(screen.getByTestId('EditIcon').closest('button'));
+    const titleInput = screen.getByDisplayValue('Test Announcement');
+    fireEvent.change(titleInput, { target: { value: '' } });
+    fireEvent.click(screen.getByText('announcement.update'));
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalled();
+    });
+  });
+
+  test('delete calls onDeleted callback', async () => {
+    const onDeleted = vi.fn();
+    render(<AnnouncementItem announcement={announcement} user={user} onDeleted={onDeleted} />);
+    fireEvent.click(screen.getByTestId('DeleteIcon').closest('button'));
+    mockSocket.on.mockImplementation((event, handler) => {
+      if (event === 'announcement_deleted') {
+        setTimeout(() => handler({ announcementId: '1' }), 50);
+      }
+    });
+    fireEvent.click(screen.getByText('announcement.delete'));
+    await waitFor(() => {
+      expect(onDeleted).toHaveBeenCalled();
+    });
+  });
 });
 
 describe("AnnouncementItem component", () => {

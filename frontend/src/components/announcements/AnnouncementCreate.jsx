@@ -22,8 +22,9 @@ const AnnouncementCreate = ({ onCreated }) => {
         }
 
         try {
-            const response = await createAnnouncement({ title, message }, token);
-            toast.success(response.message || t("announcement.announcement_created"));
+                const response = await createAnnouncement({ title, message }, token);
+                const successMsg = (response && response.message) ? response.message : t("announcement.announcement_created");
+                toast.success(successMsg);
             setTitle("");
             setMessage("");
             if (onCreated) onCreated(); // Refresh list

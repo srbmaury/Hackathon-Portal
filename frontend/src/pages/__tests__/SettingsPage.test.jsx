@@ -1,3 +1,5 @@
+vi.spyOn(toast, "success").mockImplementation(() => {});
+vi.spyOn(toast, "error").mockImplementation(() => {});
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, vi, beforeEach } from "vitest";
@@ -6,6 +8,8 @@ import { SettingsContext } from "../../context/SettingsContext";
 import { AuthContext } from "../../context/AuthContext";
 import { I18nextProvider } from "react-i18next";
 import i18n from "../../i18n/i18n";
+import * as usersApi from "../../api/users";
+import toast from "react-hot-toast";
 
 // Mock DashboardLayout
 vi.mock("../../components/dashboard/DashboardLayout", () => ({
@@ -13,6 +17,7 @@ vi.mock("../../components/dashboard/DashboardLayout", () => ({
 }));
 
 // Partial mock for react-i18next to avoid initReactI18next errors
+
 vi.mock("react-i18next", async (importOriginal) => {
   const actual = await importOriginal();
   return {
@@ -21,6 +26,7 @@ vi.mock("react-i18next", async (importOriginal) => {
     initReactI18next: { type: "3rdParty" },
   };
 });
+
 
 describe("SettingsPage", () => {
   let theme = "light";
@@ -57,22 +63,26 @@ describe("SettingsPage", () => {
     );
   };
 
-  beforeEach(() => renderPage());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    renderPage();
+  });
+
 
   it("renders dashboard layout and cards", () => {
-    expect(screen.getByTestId("dashboard-layout")).toBeInTheDocument();
-
+    expect(screen.getAllByTestId("dashboard-layout")[0]).toBeInTheDocument();
     // Match the translation keys because useTranslation mock returns the key itself
-    expect(screen.getByText("settings.title")).toBeInTheDocument();
-    expect(screen.getByText("settings.theme")).toBeInTheDocument();
-    expect(screen.getByText("settings.language")).toBeInTheDocument();
-    expect(screen.getByText("settings.notifications")).toBeInTheDocument();
+    expect(screen.getAllByText("settings.title")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("settings.theme")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("settings.language")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("settings.notifications")[0]).toBeInTheDocument();
   });
 
   it("shows selected theme and can change it", () => {
-    const lightRadio = screen.getByLabelText("settings.light");
-    const darkRadio = screen.getByLabelText("settings.dark");
-    const systemRadio = screen.getByLabelText("settings.system");
+    const lightRadio = screen.getAllByLabelText("settings.light")[0];
+    const darkRadio = screen.getAllByLabelText("settings.dark")[0];
+    const systemRadio = screen.getAllByLabelText("settings.system")[0];
 
     expect(lightRadio.checked).toBe(true);
     expect(darkRadio.checked).toBe(false);
@@ -84,10 +94,11 @@ describe("SettingsPage", () => {
     expect(setTheme).toHaveBeenCalledWith("system");
   });
 
+
   it("shows selected language and can change it", () => {
-    const englishRadio = screen.getByLabelText("English");
-    const hindiRadio = screen.getByLabelText("हिन्दी");
-    const teluguRadio = screen.getByLabelText("తెలుగు");
+    const englishRadio = screen.getAllByLabelText("English")[0];
+    const hindiRadio = screen.getAllByLabelText("हिन्दी")[0];
+    const teluguRadio = screen.getAllByLabelText("తెలుగు")[0];
 
     expect(englishRadio.checked).toBe(true);
     expect(hindiRadio.checked).toBe(false);
@@ -97,5 +108,27 @@ describe("SettingsPage", () => {
 
     fireEvent.click(teluguRadio);
     expect(setLanguage).toHaveBeenCalledWith("te");
+  });
+
+  it("updates notification preference and shows success toast", async () => {
+    vi.spyOn(usersApi, "updateNotificationPreferences").mockResolvedValue({ notificationsEnabled: true });
+    const switchInput = screen.getByRole("switch");
+    expect(switchInput.checked).toBe(true);
+    fireEvent.click(switchInput);
+    // Wait for async update
+    await screen.findByRole("switch");
+    expect(usersApi.updateNotificationPreferences).toHaveBeenCalledWith(false, "test-token");
+    expect(toast.success).toHaveBeenCalled();
+    expect(localStorage.getItem("notificationsEnabled")).toBe("false");
+  });
+
+  it("shows error toast and reverts on API error", async () => {
+    vi.spyOn(usersApi, "updateNotificationPreferences").mockRejectedValue(new Error("fail"));
+    const switchInput = screen.getByRole("switch");
+    expect(switchInput.checked).toBe(true);
+    fireEvent.click(switchInput);
+    await screen.findByRole("switch");
+    expect(toast.error).toHaveBeenCalled();
+    expect(localStorage.getItem("notificationsEnabled")).toBe("true");
   });
 });

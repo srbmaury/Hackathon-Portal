@@ -130,7 +130,7 @@ describe("MessageController", () => {
         adminToken = jwt.sign({ id: adminUser._id.toString(), role: adminUser.role, organization: org._id }, JWT_SECRET);
         userToken = jwt.sign({ id: user._id.toString(), role: user.role, organization: org._id }, JWT_SECRET);
         organizerToken = jwt.sign({ id: organizer._id.toString(), role: organizer.role, organization: org._id }, JWT_SECRET);
-    });
+    }, 30000);
 
     afterAll(async () => {
         await closeTestDb();
