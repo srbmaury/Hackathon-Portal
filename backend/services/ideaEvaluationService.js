@@ -1,9 +1,21 @@
 const OpenAI = require("openai");
 const Idea = require("../models/Idea");
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI only if API key is available (prevents errors during tests)
+let openai = null;
+function getOpenAI() {
+    if (!openai && process.env.OPENAI_API_KEY && process.env.AI_ENABLED !== "false") {
+        try {
+            openai = new OpenAI({
+                apiKey: process.env.OPENAI_API_KEY,
+            });
+        } catch (error) {
+            console.warn("Failed to initialize OpenAI:", error.message);
+            return null;
+        }
+    }
+    return openai;
+}
 
 /**
  * Evaluate an idea using AI
@@ -71,7 +83,11 @@ Return ONLY a valid JSON object in this exact format:
 
 Do not include any explanation, only the JSON object.`;
 
-        const completion = await openai.chat.completions.create({
+        const openaiClient = getOpenAI();
+        if (!openaiClient) {
+            throw new Error("OpenAI is not configured");
+        }
+        const completion = await openaiClient.chat.completions.create({
             model: process.env.AI_MODEL || "gpt-4o-mini",
             messages: [
                 {
@@ -164,7 +180,11 @@ Return ONLY a valid JSON object in this exact format:
 
 Only include ideas with similarity score >= 50. Do not include any explanation, only the JSON object.`;
 
-        const completion = await openai.chat.completions.create({
+        const openaiClient = getOpenAI();
+        if (!openaiClient) {
+            throw new Error("OpenAI is not configured");
+        }
+        const completion = await openaiClient.chat.completions.create({
             model: process.env.AI_MODEL || "gpt-4o-mini",
             messages: [
                 {
@@ -249,7 +269,11 @@ Return ONLY a valid JSON object in this exact format:
 
 Do not include any explanation, only the JSON object.`;
 
-        const completion = await openai.chat.completions.create({
+        const openaiClient = getOpenAI();
+        if (!openaiClient) {
+            throw new Error("OpenAI is not configured");
+        }
+        const completion = await openaiClient.chat.completions.create({
             model: process.env.AI_MODEL || "gpt-4o-mini",
             messages: [
                 {

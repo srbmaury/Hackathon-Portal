@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useRef } from "react";
 import { Typography } from "@mui/material";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import { useTranslation } from "react-i18next";
@@ -9,7 +9,14 @@ import { AuthContext } from "../context/AuthContext";
 const AnnouncementsPage = () => {
     const { t } = useTranslation();
     const { user } = useContext(AuthContext);
-    const [refresh, setRefresh] = useState(false);
+    const announcementListRef = useRef(null);
+
+    const handleAnnouncementCreated = () => {
+        // Trigger refresh by calling fetchAnnouncements directly instead of remounting
+        if (announcementListRef.current) {
+            announcementListRef.current.refresh();
+        }
+    };
 
     return (
         <DashboardLayout>
@@ -18,10 +25,10 @@ const AnnouncementsPage = () => {
             </Typography>
 
             {(user.role === "admin" || user.role === "organizer") && (
-                <AnnouncementCreate onCreated={() => setRefresh(!refresh)} />
+                <AnnouncementCreate onCreated={handleAnnouncementCreated} />
             )}
 
-            <AnnouncementList key={refresh} />
+            <AnnouncementList ref={announcementListRef} />
         </DashboardLayout>
     );
 };

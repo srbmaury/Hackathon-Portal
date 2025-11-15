@@ -3,7 +3,6 @@ import { render, screen, waitFor } from "@testing-library/react";
 import AnnouncementList from "../AnnouncementList";
 import { vi } from "vitest";
 import * as api from "../../../api/announcements";
-import toast from "react-hot-toast";
 import { AuthContext } from "../../../context/AuthContext";
 import { I18nextProvider } from "react-i18next";
 import i18n from "../../../i18n/i18n";
@@ -13,42 +12,72 @@ vi.mock("../../../api/announcements", () => ({
   getAnnouncements: vi.fn(),
 }));
 
-// Mock toast
-vi.mock("react-hot-toast", () => ({
-  default: {
-    success: vi.fn(),
-    error: vi.fn(),
-  },
+// Mock socket service
+const mockSocket = {
+  on: vi.fn(),
+  off: vi.fn(),
+  emit: vi.fn(),
+  disconnect: vi.fn(),
+  connect: vi.fn(),
+  connected: true,
+  once: vi.fn(),
+};
+
+vi.mock("../../../services/socket", () => ({
+  getSocket: vi.fn(() => mockSocket),
+  initializeSocket: vi.fn(() => mockSocket),
+  disconnectSocket: vi.fn(),
 }));
 
 describe("AnnouncementList component", () => {
-  const user = { name: "Test User", role: "admin" };
+  const user = { name: "Test User", role: "admin", _id: "user1" };
+  const token = "test-token";
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Set localStorage before any renders
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+  });
+
+  afterEach(() => {
+    localStorage.clear();
   });
 
   const renderComponent = () =>
     render(
       <I18nextProvider i18n={i18n}>
-        <AuthContext.Provider value={{ user }}>
+        <AuthContext.Provider value={{ user, token }}>
           <AnnouncementList />
         </AuthContext.Provider>
       </I18nextProvider>
     );
 
-  it("shows loading spinner initially", () => {
-    api.getAnnouncements.mockReturnValue(new Promise(() => {})); // never resolves
+  it("shows loading spinner initially", async () => {
+    // Create a promise that never resolves to keep loading state
+    const neverResolvingPromise = new Promise(() => {});
+    api.getAnnouncements.mockReturnValue(neverResolvingPromise);
+    
     renderComponent();
-    expect(screen.getByRole("progressbar")).toBeInTheDocument();
+    
+    // Wait for component to start loading (component checks token first, then starts fetch)
+    await waitFor(() => {
+      // Component should show loading spinner when loading and no announcements
+      // CircularProgress has role="progressbar"
+      expect(screen.getByRole("progressbar")).toBeInTheDocument();
+    }, { timeout: 500 });
   });
 
   it("renders announcements after successful fetch", async () => {
     const announcements = [
-      { _id: "1", title: "Title 1", message: "Message 1" },
-      { _id: "2", title: "Title 2", message: "Message 2" },
+      { _id: "1", title: "Title 1", message: "Message 1", createdAt: new Date().toISOString(), createdBy: { _id: "user1", name: "Test User" } },
+      { _id: "2", title: "Title 2", message: "Message 2", createdAt: new Date().toISOString(), createdBy: { _id: "user1", name: "Test User" } },
     ];
-    api.getAnnouncements.mockResolvedValue({ announcements });
+    api.getAnnouncements.mockResolvedValue({ 
+      announcements,
+      totalPages: 1,
+      total: 2
+    });
 
     renderComponent();
 
@@ -58,7 +87,7 @@ describe("AnnouncementList component", () => {
     }
   });
 
-  it("shows error toast when API fails", async () => {
+  it("shows error alert when API fails", async () => {
     api.getAnnouncements.mockRejectedValueOnce({
       response: { data: { message: "API Error" } },
     });
@@ -66,13 +95,18 @@ describe("AnnouncementList component", () => {
     renderComponent();
 
     await waitFor(() => {
+      // Component shows error in Alert component, not toast
       expect(screen.getByText("API Error")).toBeInTheDocument();
-      expect(toast.error).toHaveBeenCalledWith("API Error");
+      expect(screen.getByRole("alert")).toBeInTheDocument();
     });
   });
 
   it("shows no announcements message when list is empty", async () => {
-    api.getAnnouncements.mockResolvedValue({ announcements: [] });
+    api.getAnnouncements.mockResolvedValue({ 
+      announcements: [],
+      totalPages: 1,
+      total: 0
+    });
 
     renderComponent();
 

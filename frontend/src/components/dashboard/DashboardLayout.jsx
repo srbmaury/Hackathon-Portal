@@ -22,6 +22,7 @@ import {
     Settings as SettingsIcon,
     LightbulbOutline as LightbulbOutlineIcon,
     Person,
+    AccountCircle as AccountCircleIcon,
 } from "@mui/icons-material";
 import { AuthContext } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -68,6 +69,12 @@ const DashboardLayout = ({ children }) => {
             icon: <Person />,
             path: "/admin/members",
             roles: ["admin"],
+        },
+        {
+            text: t("dashboard.profile"),
+            icon: <AccountCircleIcon />,
+            path: "/profile",
+            roles: ["user", "hackathon_creator", "admin"],
         },
         {
             text: t("dashboard.settings"),

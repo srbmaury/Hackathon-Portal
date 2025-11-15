@@ -1,8 +1,9 @@
 import API from "./apiConfig";
 
-// Fetch Announcements
-export const getAnnouncements = async (token) => {
+// Fetch Announcements with pagination
+export const getAnnouncements = async (token, page = 1, limit = 10) => {
     const res = await API.get("/announcements", {
+        params: { page, limit },
         headers: { Authorization: `Bearer ${token}` },
     });
     return res.data;

@@ -1,8 +1,44 @@
 const Announcement = require("../models/Announcement");
 const Hackathon = require("../models/Hackathon");
 const { formatAnnouncement, enhanceAnnouncement } = require("../services/announcementFormattingService");
+const { emitAnnouncementCreated, emitAnnouncementUpdated } = require("../socket");
 
 class AnnouncementController {
+    /**
+     * Get all announcements for user's organization (across all hackathons)
+     * @route GET /api/announcements
+     */
+    async getAll(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            const skip = (page - 1) * limit;
+
+            // Get all announcements for user's organization
+            const filter = { 
+                organization: req.user.organization 
+            };
+
+            const total = await Announcement.countDocuments(filter);
+            const totalPages = Math.ceil(total / limit);
+
+            const announcements = await Announcement.find(filter)
+                .skip(skip)
+                .limit(limit)
+                .sort({ createdAt: -1 })
+                .populate("createdBy", "name email")
+                .populate("hackathon", "title") || [];
+
+            res.json({ announcements, totalPages, total });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ 
+                message: req.__("announcement.get_failed"), 
+                error: err.message 
+            });
+        }
+    }
+
     /**
      * Get announcements for a specific hackathon
      * @route GET /api/hackathons/:hackathonId/announcements
@@ -96,6 +132,10 @@ class AnnouncementController {
                 .populate("createdBy", "name email")
                 .populate("hackathon", "title");
 
+            // Emit WebSocket event for real-time updates
+            const orgId = req.user.organization._id ? String(req.user.organization._id) : String(req.user.organization);
+            emitAnnouncementCreated(orgId, populatedAnnouncement, hackathonId);
+
             res.status(201).json({
                 message: req.__("announcement.created_successfully"),
                 announcement: populatedAnnouncement,
@@ -142,6 +182,14 @@ class AnnouncementController {
             const populatedAnnouncement = await Announcement.findById(announcement._id)
                 .populate("createdBy", "name email")
                 .populate("hackathon", "title");
+
+            // Emit WebSocket event for real-time updates
+            const orgId = req.user.organization._id ? String(req.user.organization._id) : String(req.user.organization);
+            const hackathonId = announcement.hackathon ? String(announcement.hackathon) : null;
+            emitAnnouncementUpdated(orgId, announcement._id, {
+                title: populatedAnnouncement.title,
+                message: populatedAnnouncement.message,
+            }, hackathonId);
 
             res.json({
                 message: req.__("announcement.updated_successfully"),

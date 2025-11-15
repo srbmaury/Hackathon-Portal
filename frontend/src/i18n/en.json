@@ -16,6 +16,7 @@
         "my_teams": "My Teams",
         "all_members": "All Members",
         "my_participation": "My Participation",
+        "profile": "Profile",
         "settings": "Settings",
         "logout": "Logout",
         "app_title": "Hackathon Portal",
@@ -114,6 +115,23 @@
         "system": "System",
         "language": "Language",
         "notifications": "Enable Notifications"
+    },
+    "profile": {
+        "title": "My Profile",
+        "description": "View and edit your profile information",
+        "name": "Name",
+        "email": "Email",
+        "organization": "Organization",
+        "expertise": "Expertise",
+        "expertise_placeholder": "e.g., Full Stack Developer, Data Scientist",
+        "no_expertise": "Not specified",
+        "member_since": "Member Since",
+        "fetch_failed": "Failed to fetch profile",
+        "update_success": "Profile updated successfully",
+        "update_failed": "Failed to update profile",
+        "name_required": "Name is required",
+        "not_found": "Profile not found",
+        "saving": "Saving..."
     },
     "user_management": {
         "name": "Name",

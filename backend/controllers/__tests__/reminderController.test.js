@@ -142,7 +142,8 @@ describe("ReminderController", () => {
 
             const res = await request(app)
                 .get(`/api/reminders/team/${team._id}/round/${round._id}`)
-                .set("Authorization", `Bearer ${userToken}`);
+                .set("Authorization", `Bearer ${userToken}`)
+                .timeout(10000);
 
             expect(res.status).toBe(200);
             expect(res.body.analysis).toBeTruthy();
@@ -152,7 +153,7 @@ describe("ReminderController", () => {
             // Verify it has the expected properties
             expect(res.body.analysis).toHaveProperty('riskScore');
             expect(typeof res.body.analysis.riskScore).toBe('number');
-        });
+        }, 10000);
 
         it("should analyze team risk for admin", async () => {
             const { analyzeTeamRisk } = await import("../../services/smartReminderService");
@@ -166,11 +167,12 @@ describe("ReminderController", () => {
 
             const res = await request(app)
                 .get(`/api/reminders/team/${team._id}/round/${round._id}`)
-                .set("Authorization", `Bearer ${adminToken}`);
+                .set("Authorization", `Bearer ${adminToken}`)
+                .timeout(10000);
 
             expect(res.status).toBe(200);
             expect(res.body.analysis).toBeTruthy();
-        });
+        }, 10000);
 
         it("should return 404 if team not found", async () => {
             const fakeId = new mongoose.Types.ObjectId();

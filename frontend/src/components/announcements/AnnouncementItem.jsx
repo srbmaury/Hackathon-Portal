@@ -22,9 +22,10 @@ import dayjs from "dayjs";
 import MDEditor from "@uiw/react-md-editor";
 import MarkdownViewer from "../common/MarkdownViewer";
 import toast from "react-hot-toast";
-import { updateAnnouncement, deleteAnnouncement, formatAnnouncement } from "../../api/announcements";
-import { updateHackathonAnnouncement, deleteHackathonAnnouncement } from "../../api/hackathons";
+import { updateAnnouncement, formatAnnouncement } from "../../api/announcements";
+import { updateHackathonAnnouncement } from "../../api/hackathons";
 import { useTranslation } from "react-i18next";
+import { getSocket } from "../../services/socket";
 
 const AnnouncementItem = ({ announcement, user, onUpdated, onDeleted, hackathonId, myRole }) => {
     const [editing, setEditing] = useState(false);
@@ -32,6 +33,7 @@ const AnnouncementItem = ({ announcement, user, onUpdated, onDeleted, hackathonI
     const [editedTitle, setEditedTitle] = useState(announcement.title);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [formattingAnnouncement, setFormattingAnnouncement] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const token = localStorage.getItem("token");
     const theme = useTheme();
     const { t } = useTranslation();
@@ -47,20 +49,90 @@ const AnnouncementItem = ({ announcement, user, onUpdated, onDeleted, hackathonI
     // Determine color scheme based on theme
     const colorScheme = theme.palette.mode === "dark" ? "dark" : "light";
 
-    // Delete using appropriate API
-    const handleDelete = async () => {
-        try {
-            if (hackathonId) {
-                await deleteHackathonAnnouncement(hackathonId, announcement._id, token);
-            } else {
-                await deleteAnnouncement(announcement._id, token);
-            }
-            toast.success(t("announcement.announcement_deleted"));
-            onDeleted?.();
-        } catch (err) {
-            toast.error(err.response?.data?.message || t("announcement.delete_failed"));
-        } finally {
+    // Delete using websocket
+    const handleDelete = () => {
+        const socket = getSocket();
+        
+        // Check if socket exists and is connected
+        if (!socket) {
+            toast.error(t("announcement.websocket_not_connected") || "WebSocket not initialized. Please refresh the page.");
             setConfirmOpen(false);
+            return;
+        }
+
+        // Wait for socket to be connected
+        if (!socket.connected) {
+            // Try to connect if not connected
+            socket.connect();
+            
+            // Wait for connection with timeout
+            const connectionTimeout = setTimeout(() => {
+                if (!socket.connected) {
+                    toast.error(t("announcement.websocket_not_connected") || "WebSocket connection failed. Please refresh the page.");
+                    setConfirmOpen(false);
+                }
+            }, 3000);
+
+            socket.once("connect", () => {
+                clearTimeout(connectionTimeout);
+                proceedWithDelete();
+            });
+
+            return;
+        }
+
+        proceedWithDelete();
+
+        function proceedWithDelete() {
+            setDeleting(true);
+            const announcementId = announcement._id;
+
+            // Set up timeout
+            const timeoutId = setTimeout(() => {
+                socket.off("announcement_deleted", successHandler);
+                socket.off("announcement_delete_error", errorHandler);
+                setDeleting(false);
+                setConfirmOpen(false);
+                toast.error(t("announcement.delete_timeout") || "Delete request timed out. Please try again.");
+            }, 10000);
+
+            // Set up error handler
+            const errorHandler = (data) => {
+                if (data.announcementId === announcementId) {
+                    clearTimeout(timeoutId);
+                    socket.off("announcement_deleted", successHandler);
+                    socket.off("announcement_delete_error", errorHandler);
+                    setDeleting(false);
+                    setConfirmOpen(false);
+                    const errorMsg = data.error || t("announcement.delete_failed");
+                    toast.error(errorMsg);
+                }
+            };
+
+            // Set up success handler
+            const successHandler = (data) => {
+                if (data.announcementId === announcementId) {
+                    clearTimeout(timeoutId);
+                    socket.off("announcement_deleted", successHandler);
+                    socket.off("announcement_delete_error", errorHandler);
+                    setDeleting(false);
+                    setConfirmOpen(false);
+                    toast.success(t("announcement.announcement_deleted"));
+                    
+                    // Don't call onDeleted callback here - the WebSocket listener in AnnouncementList
+                    // will handle the list update automatically to avoid duplicate updates
+                }
+            };
+
+            // Register handlers
+            socket.on("announcement_deleted", successHandler);
+            socket.on("announcement_delete_error", errorHandler);
+
+            // Emit delete request
+            socket.emit("delete_announcement", {
+                announcementId: announcementId,
+                hackathonId: hackathonId || null
+            });
         }
     };
 
@@ -204,8 +276,17 @@ const AnnouncementItem = ({ announcement, user, onUpdated, onDeleted, hackathonI
                     {t("announcement.delete_confirmation")}
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setConfirmOpen(false)}>{t("announcement.cancel")}</Button>
-                    <Button color="error" onClick={handleDelete}>{t("announcement.delete")}</Button>
+                    <Button onClick={() => setConfirmOpen(false)} disabled={deleting}>
+                        {t("announcement.cancel")}
+                    </Button>
+                    <Button 
+                        color="error" 
+                        onClick={handleDelete}
+                        disabled={deleting}
+                        startIcon={deleting ? <CircularProgress size={16} /> : null}
+                    >
+                        {deleting ? t("announcement.deleting") || "Deleting..." : t("announcement.delete")}
+                    </Button>
                 </DialogActions>
             </Dialog>
         </>

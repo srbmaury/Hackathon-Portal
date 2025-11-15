@@ -47,6 +47,89 @@ const initializeSocket = (httpServer) => {
             socket.join(`org:${socket.user.organization._id}`);
         }
 
+        // Handle announcement deletion via websocket
+        socket.on("delete_announcement", async (data) => {
+            try {
+                const Announcement = require("./models/Announcement");
+                const { announcementId, hackathonId } = data;
+
+                if (!announcementId) {
+                    socket.emit("announcement_delete_error", {
+                        announcementId: announcementId || "unknown",
+                        error: "Announcement ID is required"
+                    });
+                    return;
+                }
+
+                const announcement = await Announcement.findById(announcementId);
+                
+                if (!announcement) {
+                    socket.emit("announcement_delete_error", {
+                        announcementId,
+                        error: "Announcement not found"
+                    });
+                    return;
+                }
+
+                // Get organization ID properly
+                const userOrgId = socket.user?.organization?._id 
+                    ? String(socket.user.organization._id)
+                    : String(socket.user?.organization || "");
+                const announcementOrgId = String(announcement.organization);
+
+                // Verify organization match first
+                if (announcementOrgId !== userOrgId) {
+                    socket.emit("announcement_delete_error", {
+                        announcementId,
+                        error: "Permission denied: Organization mismatch"
+                    });
+                    return;
+                }
+
+                // Verify permissions
+                const isCreator = announcement.createdBy && announcement.createdBy.equals(socket.userId);
+                const isAdmin = socket.user.role === "admin";
+                const isHackathonOrganizer = hackathonId && socket.user.role === "organizer";
+                const isGeneralOrganizer = !hackathonId && socket.user.role === "organizer" && isCreator;
+
+                const canDelete = isAdmin || isHackathonOrganizer || isGeneralOrganizer || isCreator;
+
+                if (!canDelete) {
+                    socket.emit("announcement_delete_error", {
+                        announcementId,
+                        error: "Permission denied: You don't have permission to delete this announcement"
+                    });
+                    return;
+                }
+
+                // Delete the announcement
+                await Announcement.findByIdAndDelete(announcementId);
+
+                // Prepare deletion event data
+                const deletionData = {
+                    announcementId,
+                    hackathonId: announcement.hackathon ? String(announcement.hackathon) : (hackathonId || null)
+                };
+
+                // Emit to organization room so all users see the deletion
+                // This includes the user who deleted it, so we don't need a separate emit
+                if (userOrgId) {
+                    io.to(`org:${userOrgId}`).emit("announcement_deleted", deletionData);
+                    console.log(`Announcement ${announcementId} deleted, broadcasted to org:${userOrgId}`);
+                } else {
+                    // Fallback: emit to the user who deleted if org ID is missing
+                    socket.emit("announcement_deleted", deletionData);
+                    console.warn(`Organization ID missing, only emitting to user ${socket.userId}`);
+                }
+            } catch (error) {
+                console.error("Error deleting announcement via websocket:", error);
+                socket.emit("announcement_delete_error", {
+                    announcementId: data?.announcementId || "unknown",
+                    error: error.message || "Failed to delete announcement"
+                });
+            }
+        });
+
         socket.on("disconnect", () => {
             console.log(`User disconnected: ${socket.userId}`);
         });
@@ -112,6 +195,37 @@ const emitMessage = (organizationId, teamId, data) => {
     }
 };
 
+// Function to emit announcement deletion to organization
+const emitAnnouncementDeleted = (organizationId, announcementId, hackathonId) => {
+    if (io) {
+        io.to(`org:${organizationId}`).emit("announcement_deleted", {
+            announcementId,
+            hackathonId,
+        });
+    }
+};
+
+// Function to emit announcement creation to organization
+const emitAnnouncementCreated = (organizationId, announcement, hackathonId) => {
+    if (io) {
+        io.to(`org:${organizationId}`).emit("announcement_created", {
+            announcement,
+            hackathonId: hackathonId || (announcement.hackathon ? String(announcement.hackathon) : null),
+        });
+    }
+};
+
+// Function to emit announcement update to organization
+const emitAnnouncementUpdated = (organizationId, announcementId, updates, hackathonId) => {
+    if (io) {
+        io.to(`org:${organizationId}`).emit("announcement_updated", {
+            announcementId,
+            updates,
+            hackathonId,
+        });
+    }
+};
+
 module.exports = { 
     initializeSocket, 
     emitRoleUpdate,
@@ -119,5 +233,8 @@ module.exports = {
     emitTeamUpdate,
     emitHackathonRoleUpdate,
     emitMessage,
+    emitAnnouncementDeleted,
+    emitAnnouncementCreated,
+    emitAnnouncementUpdated,
 };
 

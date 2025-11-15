@@ -13,6 +13,7 @@ import HackathonDetailsPage from "../pages/HackathonDetailsPage";
 import RoundDetailsPage from "../pages/RoundDetailsPage";
 import MyTeamsPage from "../pages/MyTeamsPage";
 import ChatPage from "../pages/ChatPage";
+import ProfilePage from "../pages/ProfilePage";
 
 const AppRoutes = () => {
     const { user } = useContext(AuthContext);
@@ -64,6 +65,12 @@ const AppRoutes = () => {
                     path="/settings"
                     element={
                         user ? <SettingsPage /> : <Navigate to="/" />
+                    }
+                />
+                <Route
+                    path="/profile"
+                    element={
+                        user ? <ProfilePage /> : <Navigate to="/" />
                     }
                 />
                 <Route

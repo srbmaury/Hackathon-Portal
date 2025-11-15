@@ -9,12 +9,13 @@ A comprehensive platform for managing hackathons, teams, ideas, and participants
 - **Team Registration**: Register teams for hackathons with team members and ideas
 - **Idea Management**: Submit and manage ideas for hackathons (public/private)
 - **User Management**: Multi-tier role system with organization-level and hackathon-specific roles
+- **Profile Management**: User profile page with editable name and expertise fields
 - **Real-time Updates**: WebSocket integration for live updates on hackathons, teams, and user roles
 - **Internationalization**: Full support for multiple languages (English, Hindi, Telugu) with comprehensive translations
 - **Submissions & Rounds**: Submit entries for hackathon rounds with file uploads and links
 - **Scoring System**: Judges can score submissions (0-100) and provide feedback
 - **Standings**: Public leaderboard with optional score hiding for participants
-- **Announcements**: Hackathon-specific announcements with markdown support
+- **Announcements**: General and hackathon-specific announcements with markdown support
 - **File Uploads**: Cloudinary integration for submission files (PPT, PDF, ZIP, etc.)
 - **Modal-based UI**: Professional modals for confirmations, errors, and information display
 - **Team Chat**: Real-time messaging for teams with AI assistant support
@@ -39,6 +40,7 @@ A comprehensive platform for managing hackathons, teams, ideas, and participants
 - Real-time team updates
 - Team editing capabilities
 - View all registered teams for a hackathon
+- Mentor assignment to teams (organizer/admin)
 
 ### Submissions & Scoring
 - Submit entries for active rounds with links and file uploads
@@ -51,6 +53,7 @@ A comprehensive platform for managing hackathons, teams, ideas, and participants
 - Update submissions before round deadline
 
 ### Announcements
+- General announcements (organization-wide)
 - Hackathon-specific announcements
 - Markdown support for rich text formatting
 - Create, edit, and delete announcements (organizers/admins)
@@ -230,91 +233,7 @@ The frontend will run on `http://localhost:5173`
 
 ## 📁 Project Structure
 
-```
-Hackathon-Portal/
-├── backend/
-│   ├── config/
-│   │   ├── db.js              # Database connection
-│   │   └── i18n.js            # Internationalization config
-│   ├── controllers/           # Route controllers
-│   │   ├── authController.js
-│   │   ├── hackathonController.js
-│   │   ├── ideaController.js
-│   │   ├── registrationController.js
-│   │   └── userController.js
-│   ├── middleware/            # Express middleware
-│   │   ├── auth.js            # JWT authentication
-│   │   ├── hackathonRoleCheck.js
-│   │   ├── i18nMiddleware.js
-│   │   └── roleCheck.js
-│   ├── models/                # Mongoose models
-│   │   ├── Hackathon.js
-│   │   ├── Team.js
-│   │   ├── Idea.js
-│   │   ├── User.js
-│   │   ├── HackathonRole.js
-│   │   └── Organization.js
-│   ├── routes/                # API routes
-│   ├── services/              # Business logic & AI services
-│   │   ├── announcementFormattingService.js
-│   │   ├── chatAssistantService.js
-│   │   ├── hackathonFormattingService.js
-│   │   ├── ideaEvaluationService.js
-│   │   ├── mentorAssignmentService.js
-│   │   ├── reminderCronService.js
-│   │   ├── roundSuggestionService.js
-│   │   ├── smartReminderService.js
-│   │   └── submissionEvaluationService.js
-│   ├── socket.js              # Socket.io setup
-│   ├── server.js              # Express server (includes cron jobs)
-│   └── app.js                 # Express app configuration
-│
-├── frontend/
-│   ├── src/
-│   │   ├── api/               # API client functions
-│   │   │   ├── apiConfig.js
-│   │   │   ├── announcements.js
-│   │   │   ├── auth.js
-│   │   │   ├── hackathons.js
-│   │   │   ├── ideas.js
-│   │   │   ├── messages.js
-│   │   │   ├── registrations.js
-│   │   │   ├── reminders.js
-│   │   │   ├── submissions.js
-│   │   │   └── users.js
-│   │   ├── components/        # React components
-│   │   │   ├── announcements/
-│   │   │   ├── auth/
-│   │   │   ├── chat/          # ChatWindow component
-│   │   │   ├── common/        # InfoModal, ConfirmDialog, ScoreFeedbackDialog, MarkdownViewer
-│   │   │   ├── dashboard/
-│   │   │   ├── hackathons/
-│   │   │   ├── ideas/
-│   │   │   ├── members/
-│   │   │   └── teams/
-│   │   ├── context/            # React context providers
-│   │   │   ├── AuthContext.js
-│   │   │   └── SettingsContext.js
-│   │   ├── i18n/              # Translation files (en, hi, te)
-│   │   ├── pages/             # Page components
-│   │   │   ├── HackathonPage.jsx
-│   │   │   ├── HackathonDetailsPage.jsx
-│   │   │   ├── RoundDetailsPage.jsx
-│   │   │   ├── MyTeamsPage.jsx
-│   │   │   ├── IdeaSubmissionPage.jsx
-│   │   │   ├── PublicIdeasPage.jsx
-│   │   │   ├── AdminMembersPage.jsx
-│   │   │   ├── UserManagementPage.jsx
-│   │   │   ├── ChatPage.jsx
-│   │   │   ├── SettingsPage.jsx
-│   │   │   └── LoginPage.jsx
-│   │   ├── routes/             # Route configuration
-│   │   ├── services/          # Services (Socket.io client)
-│   │   └── main.jsx           # Application entry point
-│   └── public/
-│
-└── README.md
-```
+https://yaml-visualizer.netlify.app/shared/SO0aomWdoe
 
 ## 🔑 Key Features
 
@@ -346,6 +265,7 @@ Hackathon-Portal/
 - Admin can assign roles to users
 - Real-time role updates
 - Users can have different roles in different hackathons
+- Profile management with editable name and expertise fields
 
 ### Submissions & Scoring
 - Submit entries with links and file uploads (Cloudinary)
@@ -387,14 +307,15 @@ npm run test:coverage # Run with coverage report
 
 ```bash
 cd frontend
-npm test              # Run tests
+npm test              # Run tests once
 npm run test:watch    # Run tests in watch mode
+npm run test:coverage # Run with coverage report
 ```
 
 ## 📡 API Endpoints
 
 ### Authentication
-- `POST /api/auth/google` - Google OAuth login
+- `POST /api/auth/google-login` - Google OAuth login
 
 ### Hackathons
 - `GET /api/hackathons` - Get all hackathons
@@ -403,21 +324,24 @@ npm run test:watch    # Run tests in watch mode
 - `PUT /api/hackathons/:id` - Update hackathon (organizer/admin)
 - `DELETE /api/hackathons/:id` - Delete hackathon (organizer/admin)
 - `GET /api/hackathons/:id/members` - Get hackathon members
+- `GET /api/hackathons/:id/my-role` - Get user's role in a hackathon
 - `POST /api/hackathons/:id/roles` - Assign hackathon role
-- `DELETE /api/hackathons/:id/roles/:roleId` - Remove hackathon role
+- `DELETE /api/hackathons/:id/roles/:userId` - Remove hackathon role
+- `POST /api/hackathons/:id/assign-mentors` - Assign mentors to teams (organizer/admin)
 
 ### Teams
 - `POST /api/register/:hackathonId/register` - Register team
 - `GET /api/register/:hackathonId/my` - Get my team
 - `GET /api/register/:hackathonId/teams/public` - Get all teams (public)
+- `GET /api/register/:hackathonId/teams` - Get all teams (organizer/admin only)
 - `PUT /api/register/:hackathonId/teams/:teamId` - Update team
 - `DELETE /api/register/:hackathonId/teams/:teamId` - Withdraw team
 - `GET /api/register/my-teams` - Get all my teams
 
 ### Ideas
-- `GET /api/ideas` - Get public ideas
+- `GET /api/ideas/public-ideas` - Get public ideas
 - `GET /api/ideas/my` - Get my ideas
-- `POST /api/ideas` - Create idea
+- `POST /api/ideas/submit` - Create/submit idea
 - `PUT /api/ideas/:id` - Update idea
 - `DELETE /api/ideas/:id` - Delete idea
 - `POST /api/ideas/:id/evaluate` - Evaluate idea with AI
@@ -435,10 +359,12 @@ npm run test:watch    # Run tests in watch mode
 - `GET /api/submissions/:roundId/compare` - Compare submissions in a round
 
 ### Announcements
-- `GET /api/hackathons/:hackathonId/announcements` - Get hackathon announcements
+- `GET /api/announcements` - Get general announcements (all users)
+- `GET /api/hackathons/:hackathonId/announcements` - Get hackathon-specific announcements
 - `POST /api/hackathons/:hackathonId/announcements` - Create announcement (organizer/admin, supports `useAIFormatting` flag)
 - `PUT /api/hackathons/:hackathonId/announcements/:id` - Update announcement
-- `DELETE /api/hackathons/:hackathonId/announcements/:id` - Delete announcement
+- `DELETE /api/hackathons/:hackathonId/announcements/:id` - Delete hackathon announcement
+- `DELETE /api/announcements/:id` - Delete general announcement
 - `POST /api/hackathons/:hackathonId/announcements/format` - Format announcement with AI
 - `POST /api/hackathons/:hackathonId/announcements/enhance` - Get enhancement suggestions
 
@@ -459,8 +385,10 @@ npm run test:watch    # Run tests in watch mode
 
 ### Users
 - `GET /api/users` - Get all users (admin)
+- `GET /api/users/me` - Get current user profile
+- `PUT /api/users/me` - Update current user profile
 - `GET /api/users/with-roles` - Get users with hackathon roles (admin)
-- `PUT /api/users/:id/role` - Update user role (admin)
+- `PUT /api/users/:id/role` - Update user role (organizer/admin)
 
 ## 🌐 Internationalization
 

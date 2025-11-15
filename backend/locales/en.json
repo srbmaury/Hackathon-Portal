@@ -16,7 +16,9 @@
 		"fetch_failed": "Failed to fetch users",
 		"cannot_modify_admin": "Cannot modify admin user role",
 		"role_updated_successfully": "User role updated successfully",
-		"role_update_failed": "Failed to update user role"
+		"role_update_failed": "Failed to update user role",
+		"profile_updated_successfully": "Profile updated successfully",
+		"profile_update_failed": "Failed to update profile"
 	},
 	"announcement": {
 		"get_failed": "Failed to fetch announcements",
