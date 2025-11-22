@@ -14,12 +14,35 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Get full history for better diffs
+
+      - name: Setup base branch
+        id: base
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            BASE_REF="${{ github.event.pull_request.base.ref }}"
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            # Try to get base ref from context, fallback to main
+            BASE_REF="${{ github.base_ref }}"
+            if [ -z "$BASE_REF" ]; then
+              BASE_REF="main"
+            fi
+            BASE_SHA="origin/$BASE_REF"
+          fi
+          
+          # Fetch all branches to ensure we have the base
+          git fetch origin --depth=1 || true
+          git fetch origin "$BASE_REF" --depth=1 || true
+          
+          echo "ref=$BASE_REF" >> $GITHUB_OUTPUT
+          echo "sha=$BASE_SHA" >> $GITHUB_OUTPUT
+          echo "✅ Base branch: $BASE_REF (SHA: $BASE_SHA)"
 
       - name: Get PR number
         id: pr
@@ -42,23 +65,59 @@ jobs:
       - name: Generate Summary
         id: summary
         run: |
-          # Get statistics
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | wc -l | tr -d ' ')
-          TOTAL_COMMITS=$(git rev-list --count origin/${{ github.base_ref }}..HEAD)
-          ADDITIONS=$(git diff --numstat origin/${{ github.base_ref }}...HEAD | awk '{sum+=$1} END {print sum+0}')
-          DELETIONS=$(git diff --numstat origin/${{ github.base_ref }}...HEAD | awk '{sum+=$2} END {print sum+0}')
+          set +e  # Don't exit on error
+          
+          BASE_REF="${{ steps.base.outputs.ref }}"
+          BASE_SHA="${{ steps.base.outputs.sha }}"
+          
+          # Use merge-base to find common ancestor, fallback to base ref
+          MERGE_BASE=$(git merge-base HEAD "$BASE_SHA" 2>/dev/null || echo "$BASE_SHA")
+          
+          # Verify MERGE_BASE exists, if not use HEAD~1 as fallback
+          if ! git rev-parse --verify "$MERGE_BASE" >/dev/null 2>&1; then
+            MERGE_BASE="HEAD~1"
+            if ! git rev-parse --verify "$MERGE_BASE" >/dev/null 2>&1; then
+              MERGE_BASE="HEAD"
+            fi
+          fi
+          
+          # Get statistics with error handling - use two-dot for commits, three-dot for diff
+          CHANGED_FILES=$(git diff --name-only "$MERGE_BASE" HEAD 2>/dev/null | wc -l | tr -d ' ')
+          CHANGED_FILES=${CHANGED_FILES:-0}
+          
+          TOTAL_COMMITS=$(git rev-list --count "$MERGE_BASE"..HEAD 2>/dev/null || echo "0")
+          TOTAL_COMMITS=${TOTAL_COMMITS:-0}
+          
+          ADDITIONS=$(git diff --numstat "$MERGE_BASE" HEAD 2>/dev/null | awk '{sum+=$1} END {print sum+0}')
+          ADDITIONS=${ADDITIONS:-0}
+          
+          DELETIONS=$(git diff --numstat "$MERGE_BASE" HEAD 2>/dev/null | awk '{sum+=$2} END {print sum+0}')
+          DELETIONS=${DELETIONS:-0}
           
           # Get recent commits (last 5 only)
-          RECENT_COMMITS=$(git log --oneline origin/${{ github.base_ref }}..HEAD | head -5)
+          RECENT_COMMITS=$(git log --oneline "$MERGE_BASE"..HEAD 2>/dev/null | head -5)
+          RECENT_COMMITS=${RECENT_COMMITS:-"No commits found"}
           
           # Categorize changed files
-          TEST_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E "(test|spec)" | wc -l | tr -d ' ')
-          COMPONENT_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E "(components|pages)" | wc -l | tr -d ' ')
-          API_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E "api/" | wc -l | tr -d ' ')
-          CONFIG_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E "(\.yml|\.yaml|\.json|config)" | wc -l | tr -d ' ')
+          TEST_FILES=$(git diff --name-only "$MERGE_BASE" HEAD 2>/dev/null | grep -E "(test|spec)" | wc -l | tr -d ' ')
+          TEST_FILES=${TEST_FILES:-0}
+          
+          COMPONENT_FILES=$(git diff --name-only "$MERGE_BASE" HEAD 2>/dev/null | grep -E "(components|pages)" | wc -l | tr -d ' ')
+          COMPONENT_FILES=${COMPONENT_FILES:-0}
+          
+          API_FILES=$(git diff --name-only "$MERGE_BASE" HEAD 2>/dev/null | grep -E "api/" | wc -l | tr -d ' ')
+          API_FILES=${API_FILES:-0}
+          
+          CONFIG_FILES=$(git diff --name-only "$MERGE_BASE" HEAD 2>/dev/null | grep -E "(\.yml|\.yaml|\.json|config)" | wc -l | tr -d ' ')
+          CONFIG_FILES=${CONFIG_FILES:-0}
           
           # Get file list (max 10 files, formatted as list)
-          CHANGED_FILE_LIST=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | head -10 | while read file; do echo "- \`$file\`"; done)
+          CHANGED_FILE_LIST=$(git diff --name-only "$MERGE_BASE" HEAD 2>/dev/null | head -10 | while read file; do [ -n "$file" ] && echo "- \`$file\`"; done)
+          if [ -z "$CHANGED_FILE_LIST" ]; then
+            CHANGED_FILE_LIST="- No files changed"
+          fi
+          
+          set -e  # Re-enable error exit
           
           # Generate concise summary
           cat > summary.md << EOF
@@ -84,6 +143,16 @@ jobs:
           ---
           _Auto-updated • Tests running..._
           EOF
+          
+          # Ensure file exists
+          if [ ! -f summary.md ]; then
+            echo "## 📊 PR Summary" > summary.md
+            echo "" >> summary.md
+            echo "**⚠️ Unable to generate detailed summary. Check workflow logs for details.**" >> summary.md
+            echo "" >> summary.md
+            echo "---" >> summary.md
+            echo "_Auto-updated • Tests running..._" >> summary.md
+          fi
           
           # Save for next step
           cat summary.md > $GITHUB_STEP_SUMMARY
@@ -122,6 +191,16 @@ jobs:
       - name: Update Summary with Test Results
         if: always()
         run: |
+          # Ensure summary.md exists
+          if [ ! -f summary.md ]; then
+            echo "## 📊 PR Summary" > summary.md
+            echo "" >> summary.md
+            echo "**⚠️ Summary generation had issues. Check workflow logs.**" >> summary.md
+            echo "" >> summary.md
+            echo "---" >> summary.md
+            echo "_Auto-updated • Tests running..._" >> summary.md
+          fi
+          
           # Get test results if available (jq is pre-installed on GitHub runners)
           if [ -f backend/coverage/coverage-summary.json ]; then
             BACKEND_COV=$(jq -r '.total.lines.pct // "N/A"' backend/coverage/coverage-summary.json 2>/dev/null || echo "N/A")
@@ -130,8 +209,16 @@ jobs:
             BACKEND_COV="N/A"
           fi
           
-          # Update summary with test results - replace the "Tests running" line
-          sed -i 's/_Auto-updated.*Tests running\.\.\._/✅ **Tests Completed** | Backend Coverage: `'"$BACKEND_COV"'%` | '$(date -u +"%H:%M:%S UTC")'/' summary.md
+          TIMESTAMP=$(date -u +"%H:%M:%S UTC")
+          
+          # Update summary with test results - use # as delimiter to avoid conflicts with / and |
+          if grep -q "_Auto-updated.*Tests running" summary.md 2>/dev/null; then
+            sed -i 's#_Auto-updated.*Tests running\.\.\._#✅ **Tests Completed** | Backend Coverage: `'"$BACKEND_COV"'%` | '"$TIMESTAMP"'#' summary.md
+          else
+            # If the pattern doesn't exist, append test results
+            echo "" >> summary.md
+            echo "✅ **Tests Completed** | Backend Coverage: \`$BACKEND_COV%\` | $TIMESTAMP" >> summary.md
+          fi
           
           # Add footer
           echo "" >> summary.md
