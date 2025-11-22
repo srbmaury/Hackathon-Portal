@@ -1,15 +1,53 @@
 import React, { useContext, useState } from "react";
+
 import {
-    Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Paper,
-    IconButton, Dialog, DialogTitle, DialogContent, DialogActions,
-    Button, TextField, Checkbox, Stack, Typography, Box, Chip, CircularProgress, Divider
+    Box,
+    Button,
+    Checkbox,
+    Chip,
+    CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    Divider,
+    IconButton,
+    Paper,
+    Stack,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    TextField,
+    Typography,
 } from "@mui/material";
-import { Edit, Delete, AutoAwesome, Search, Lightbulb, Assessment } from "@mui/icons-material";
-import { editIdea, deleteIdea, evaluateIdea, findSimilarIdeas, getIdeaImprovements } from "../../api/ideas";
-import { AuthContext } from "../../context/AuthContext";
+
+import {
+    Assessment,
+    AutoAwesome,
+    Delete,
+    Edit,
+    Lightbulb,
+    Search,
+} from "@mui/icons-material";
+
 import toast from "react-hot-toast";
+
 import { useTranslation } from "react-i18next";
+
+import { AuthContext } from "../../context/AuthContext";
+
 import ConfirmDialog from "../common/ConfirmDialog";
+
+import {
+    deleteIdea,
+    editIdea,
+    evaluateIdea,
+    findSimilarIdeas,
+    getIdeaImprovements,
+} from "../../api/ideas";
 
 const IdeasTable = ({ ideas = [], filter, onIdeaUpdated, showActions = false }) => {
     const { t } = useTranslation();
@@ -19,7 +57,7 @@ const IdeasTable = ({ ideas = [], filter, onIdeaUpdated, showActions = false }) 
     const [selectedIdea, setSelectedIdea] = useState(null);
     const [editData, setEditData] = useState({ title: "", description: "", isPublic: true });
     const [deleteDialog, setDeleteDialog] = useState({ open: false, ideaId: null, ideaTitle: "" });
-    
+
     // AI features state
     const [evaluationDialog, setEvaluationDialog] = useState({ open: false, idea: null, evaluation: null, loading: false });
     const [similarIdeasDialog, setSimilarIdeasDialog] = useState({ open: false, idea: null, similarIdeas: [], loading: false });
@@ -195,7 +233,7 @@ const IdeasTable = ({ ideas = [], filter, onIdeaUpdated, showActions = false }) 
                                         >
                                             <Lightbulb fontSize="small" />
                                         </IconButton>
-                                        
+
                                         {/* Edit/Delete buttons - only when showActions is true */}
                                         {showActions && (
                                             <>

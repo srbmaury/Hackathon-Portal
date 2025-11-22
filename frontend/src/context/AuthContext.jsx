@@ -27,10 +27,9 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         if (token) {
             const socket = initializeSocket(token);
-            
+
             // Listen for role updates
             const handleRoleUpdate = (data) => {
-                console.log("Role updated received:", data);
                 // Update user in state and localStorage
                 setUser((currentUser) => {
                     if (currentUser && String(currentUser._id) === String(data.user._id)) {
@@ -46,23 +45,23 @@ export const AuthProvider = ({ children }) => {
             };
 
             socket.on("role_updated", handleRoleUpdate);
-            
+
             // Store socket in context for other components to use
             socket.on("hackathon_updated", (data) => {
                 // Dispatch custom event for components to listen
                 window.dispatchEvent(new CustomEvent("hackathon_updated", { detail: data }));
             });
-            
+
             socket.on("team_updated", (data) => {
                 // Dispatch custom event for components to listen
                 window.dispatchEvent(new CustomEvent("team_updated", { detail: data }));
             });
-            
+
             socket.on("hackathon_role_updated", (data) => {
                 // Dispatch custom event for components to listen
                 window.dispatchEvent(new CustomEvent("hackathon_role_updated", { detail: data }));
             });
-            
+
             socket.on("team_message", (data) => {
                 // Dispatch custom event for components to listen
                 window.dispatchEvent(new CustomEvent("team_message", { detail: data }));
@@ -85,7 +84,7 @@ export const AuthProvider = ({ children }) => {
         setToken(authToken);
         localStorage.setItem("user", JSON.stringify(userData));
         localStorage.setItem("token", authToken);
-        
+
         // Fetch full user profile to ensure we have all fields including notificationsEnabled
         if (authToken) {
             try {

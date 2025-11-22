@@ -1,30 +1,25 @@
 import React from "react";
+
 import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Button,
-    Typography,
     Box,
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    Typography,
 } from "@mui/material";
+
 import {
     CheckCircle as CheckCircleIcon,
     Error as ErrorIcon,
     Info as InfoIcon,
     Warning as WarningIcon,
 } from "@mui/icons-material";
+
 import { useTranslation } from "react-i18next";
 
-const InfoModal = ({
-    open,
-    onClose,
-    type = "info", // "info", "success", "error", "warning"
-    title,
-    message,
-    buttonText,
-    onButtonClick,
-}) => {
+const InfoModal = ({ open, onClose, type = "info", title, message, buttonText, onButtonClick, }) => {
     const { t } = useTranslation();
 
     const getIcon = () => {

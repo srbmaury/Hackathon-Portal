@@ -5,9 +5,17 @@ const HackathonRole = require("../models/HackathonRole");
 const User = require("../models/User");
 const { emitHackathonUpdate, emitHackathonRoleUpdate } = require("../socket");
 const { assignTeamsToMentors } = require("../services/mentorAssignmentService");
-const { formatHackathonDescription } = require("../services/hackathonFormattingService");
-const { suggestRound, suggestMultipleRounds } = require("../services/roundSuggestionService");
-const { notifyNewHackathon, notifyHackathonUpdate } = require("../services/notificationService");
+const {
+    formatHackathonDescription,
+} = require("../services/hackathonFormattingService");
+const {
+    suggestRound,
+    suggestMultipleRounds,
+} = require("../services/roundSuggestionService");
+const {
+    notifyNewHackathon,
+    notifyHackathonUpdate,
+} = require("../services/notificationService");
 
 class HackathonController {
     /**
@@ -31,17 +39,18 @@ class HackathonController {
             let roundIds = [];
             if (Array.isArray(rounds) && rounds.length > 0) {
                 const createdRounds = await Round.insertMany(
-                    rounds.map(r => ({
+                    rounds.map((r) => ({
                         name: r.name,
                         description: r.description || "",
                         startDate: r.startDate,
                         endDate: r.endDate,
                         isActive: r.isActive !== undefined ? r.isActive : true,
-                        hideScores: r.hideScores !== undefined ? r.hideScores : false,
+                        hideScores:
+                            r.hideScores !== undefined ? r.hideScores : false,
                         submissions: [],
                     }))
                 );
-                roundIds = createdRounds.map(r => r._id);
+                roundIds = createdRounds.map((r) => r._id);
             }
 
             // Create hackathon
@@ -66,7 +75,10 @@ class HackathonController {
             const populatedHackathon = await Hackathon.findById(hackathon._id)
                 .populate("createdBy", "name email")
                 .populate("organization", "name")
-                .populate("rounds", "name description startDate endDate isActive hideScores");
+                .populate(
+                    "rounds",
+                    "name description startDate endDate isActive hideScores"
+                );
 
             // Emit hackathon created event
             emitHackathonUpdate(
@@ -79,7 +91,9 @@ class HackathonController {
             notifyNewHackathon(
                 populatedHackathon,
                 req.user.organization._id.toString()
-            ).catch(err => console.error("Error creating notifications:", err));
+            ).catch((err) =>
+                console.error("Error creating notifications:", err)
+            );
 
             res.status(201).json({
                 message: req.__("hackathon.created_successfully"),
@@ -112,11 +126,27 @@ class HackathonController {
             // Fetch hackathons with populated fields
             const hackathons = await Hackathon.find(filter)
                 .populate("createdBy", "name email")
-                .populate("rounds", "name description startDate endDate isActive hideScores")
+                .populate(
+                    "rounds",
+                    "name description startDate endDate isActive hideScores"
+                )
                 .sort({ createdAt: -1 });
 
+            // Add user's role in each hackathon
+            const hackathonsWithRoles = await Promise.all(
+                hackathons.map(async (hackathon) => {
+                    const roleDoc = await HackathonRole.findOne({
+                        user: req.user._id,
+                        hackathon: hackathon._id,
+                    });
+                    const hackathonObj = hackathon.toObject();
+                    hackathonObj.myRole = roleDoc ? roleDoc.role : null;
+                    return hackathonObj;
+                })
+            );
+
             res.json({
-                hackathons,
+                hackathons: hackathonsWithRoles,
                 total: hackathons.length,
                 message: req.__("hackathon.fetch_success"),
             });
@@ -149,7 +179,10 @@ class HackathonController {
             const hackathon = await Hackathon.findById(id)
                 .populate("createdBy", "name email")
                 .populate("organization", "name domain")
-                .populate("rounds", "name description startDate endDate isActive");
+                .populate(
+                    "rounds",
+                    "name description startDate endDate isActive"
+                );
 
             if (!hackathon) {
                 return res.status(404).json({
@@ -158,14 +191,20 @@ class HackathonController {
             }
 
             // Check organization access
-            if (String(hackathon.organization._id) !== String(req.user.organization._id)) {
+            if (
+                String(hackathon.organization._id) !==
+                String(req.user.organization._id)
+            ) {
                 return res.status(403).json({
                     message: req.__("hackathon.access_denied"),
                 });
             }
 
             // Check visibility for non-admin/organizer users
-            if (!hackathon.isActive && !["organizer", "admin"].includes(req.user.role)) {
+            if (
+                !hackathon.isActive &&
+                !["organizer", "admin"].includes(req.user.role)
+            ) {
                 return res.status(403).json({
                     message: req.__("hackathon.access_denied_inactive"),
                 });
@@ -211,7 +250,10 @@ class HackathonController {
             }
 
             // Check organization access
-            if (String(hackathon.organization) !== String(req.user.organization._id)) {
+            if (
+                String(hackathon.organization) !==
+                String(req.user.organization._id)
+            ) {
                 return res.status(403).json({
                     message: req.__("hackathon.access_denied"),
                 });
@@ -225,21 +267,25 @@ class HackathonController {
             // Handle rounds update if provided
             if (Array.isArray(rounds)) {
                 // Get old round IDs
-                const oldRoundIds = hackathon.rounds.map(r => r.toString());
-                
+                const oldRoundIds = hackathon.rounds.map((r) => r.toString());
+
                 // Separate rounds into: existing (with _id) and new (without _id)
-                const existingRounds = rounds.filter(r => r._id);
-                const newRounds = rounds.filter(r => !r._id);
-                
+                const existingRounds = rounds.filter((r) => r._id);
+                const newRounds = rounds.filter((r) => !r._id);
+
                 // Find rounds to delete (old rounds not in the new list)
-                const incomingRoundIds = existingRounds.map(r => r._id.toString());
-                const roundsToDelete = oldRoundIds.filter(rId => !incomingRoundIds.includes(rId));
-                
+                const incomingRoundIds = existingRounds.map((r) =>
+                    r._id.toString()
+                );
+                const roundsToDelete = oldRoundIds.filter(
+                    (rId) => !incomingRoundIds.includes(rId)
+                );
+
                 // Delete removed rounds
                 if (roundsToDelete.length > 0) {
                     await Round.deleteMany({ _id: { $in: roundsToDelete } });
                 }
-                
+
                 // Update existing rounds
                 for (const r of existingRounds) {
                     await Round.findByIdAndUpdate(r._id, {
@@ -248,27 +294,32 @@ class HackathonController {
                         startDate: r.startDate,
                         endDate: r.endDate,
                         isActive: r.isActive !== undefined ? r.isActive : true,
-                        hideScores: r.hideScores !== undefined ? r.hideScores : false,
+                        hideScores:
+                            r.hideScores !== undefined ? r.hideScores : false,
                     });
                 }
-                
+
                 // Create new rounds
                 let newRoundIds = [];
                 if (newRounds.length > 0) {
                     const createdRounds = await Round.insertMany(
-                        newRounds.map(r => ({
+                        newRounds.map((r) => ({
                             name: r.name,
                             description: r.description || "",
                             startDate: r.startDate,
                             endDate: r.endDate,
-                            isActive: r.isActive !== undefined ? r.isActive : true,
-                            hideScores: r.hideScores !== undefined ? r.hideScores : false,
+                            isActive:
+                                r.isActive !== undefined ? r.isActive : true,
+                            hideScores:
+                                r.hideScores !== undefined
+                                    ? r.hideScores
+                                    : false,
                             submissions: [],
                         }))
                     );
-                    newRoundIds = createdRounds.map(r => r._id);
+                    newRoundIds = createdRounds.map((r) => r._id);
                 }
-                
+
                 // Update hackathon rounds array
                 hackathon.rounds = [...incomingRoundIds, ...newRoundIds];
             }
@@ -280,7 +331,10 @@ class HackathonController {
             const updatedHackathon = await Hackathon.findById(hackathon._id)
                 .populate("createdBy", "name email")
                 .populate("organization", "name domain")
-                .populate("rounds", "name description startDate endDate isActive hideScores");
+                .populate(
+                    "rounds",
+                    "name description startDate endDate isActive hideScores"
+                );
 
             // Emit hackathon updated event
             emitHackathonUpdate(
@@ -294,7 +348,9 @@ class HackathonController {
                 updatedHackathon,
                 req.user.organization._id.toString(),
                 true // participantsOnly = true
-            ).catch(err => console.error("Error creating notifications:", err));
+            ).catch((err) =>
+                console.error("Error creating notifications:", err)
+            );
 
             res.json({
                 message: req.__("hackathon.updated_successfully"),
@@ -335,7 +391,10 @@ class HackathonController {
             }
 
             // Check organization access
-            if (String(hackathon.organization) !== String(req.user.organization._id)) {
+            if (
+                String(hackathon.organization) !==
+                String(req.user.organization._id)
+            ) {
                 return res.status(403).json({
                     message: req.__("hackathon.access_denied"),
                 });
@@ -352,6 +411,9 @@ class HackathonController {
             if (hackathon.rounds && hackathon.rounds.length > 0) {
                 await Round.deleteMany({ _id: { $in: hackathon.rounds } });
             }
+
+            // Delete all related HackathonRole assignments
+            await HackathonRole.deleteMany({ hackathon: id });
 
             // Delete the hackathon
             await Hackathon.findByIdAndDelete(id);
@@ -381,13 +443,19 @@ class HackathonController {
             // Validate inputs
             if (!userId || !role) {
                 return res.status(400).json({
-                    message: req.__("hackathon.user_id_role_required") || "User ID and role are required",
+                    message:
+                        req.__("hackathon.user_id_role_required") ||
+                        "User ID and role are required",
                 });
             }
 
-            if (!["organizer", "judge", "mentor", "participant"].includes(role)) {
+            if (
+                !["organizer", "judge", "mentor", "participant"].includes(role)
+            ) {
                 return res.status(400).json({
-                    message: req.__("hackathon.invalid_role") || "Invalid role. Must be organizer, judge, mentor, or participant",
+                    message:
+                        req.__("hackathon.invalid_role") ||
+                        "Invalid role. Must be organizer, judge, mentor, or participant",
                 });
             }
 
@@ -407,7 +475,10 @@ class HackathonController {
                 });
             }
 
-            if (String(user.organization._id) !== String(req.user.organization._id)) {
+            if (
+                String(user.organization._id) !==
+                String(req.user.organization._id)
+            ) {
                 return res.status(403).json({
                     message: "User must belong to the same organization",
                 });
@@ -424,7 +495,9 @@ class HackathonController {
                 existingRole.assignedBy = req.user._id;
                 await existingRole.save();
 
-                const updatedRole = await HackathonRole.findById(existingRole._id)
+                const updatedRole = await HackathonRole.findById(
+                    existingRole._id
+                )
                     .populate("user", "name email")
                     .populate("assignedBy", "name email");
 
@@ -450,7 +523,9 @@ class HackathonController {
                 assignedBy: req.user._id,
             });
 
-            const populatedRole = await HackathonRole.findById(hackathonRole._id)
+            const populatedRole = await HackathonRole.findById(
+                hackathonRole._id
+            )
                 .populate("user", "name email")
                 .populate("assignedBy", "name email");
 
@@ -558,7 +633,7 @@ class HackathonController {
                 participant: [],
             };
 
-            roles.forEach(roleDoc => {
+            roles.forEach((roleDoc) => {
                 membersByRole[roleDoc.role].push({
                     _id: roleDoc._id,
                     user: roleDoc.user,
@@ -649,7 +724,9 @@ class HackathonController {
             // Check if OpenAI API key is configured
             if (!process.env.OPENAI_API_KEY) {
                 return res.status(500).json({
-                    message: req.__("mentor.openai_not_configured") || "OpenAI API key is not configured",
+                    message:
+                        req.__("mentor.openai_not_configured") ||
+                        "OpenAI API key is not configured",
                 });
             }
 
@@ -664,13 +741,18 @@ class HackathonController {
             });
 
             return res.status(200).json({
-                message: req.__("mentor.assignment_success") || "Teams successfully assigned to mentors",
+                message:
+                    req.__("mentor.assignment_success") ||
+                    "Teams successfully assigned to mentors",
                 ...result,
             });
         } catch (error) {
             console.error("Error assigning mentors:", error);
             return res.status(500).json({
-                message: error.message || req.__("mentor.assignment_failed") || "Failed to assign mentors",
+                message:
+                    error.message ||
+                    req.__("mentor.assignment_failed") ||
+                    "Failed to assign mentors",
                 error: error.message,
             });
         }
@@ -690,7 +772,10 @@ class HackathonController {
                 });
             }
 
-            const formatted = await formatHackathonDescription(title, description);
+            const formatted = await formatHackathonDescription(
+                title,
+                description
+            );
             res.json({
                 formattedTitle: formatted.title,
                 formattedDescription: formatted.description,
@@ -710,7 +795,13 @@ class HackathonController {
      */
     async suggestRound(req, res) {
         try {
-            const { title, description, roundNumber, existingRounds, hackathonStartDate } = req.body;
+            const {
+                title,
+                description,
+                roundNumber,
+                existingRounds,
+                hackathonStartDate,
+            } = req.body;
 
             if (!title) {
                 return res.status(400).json({
@@ -742,7 +833,8 @@ class HackathonController {
      */
     async suggestRounds(req, res) {
         try {
-            const { title, description, numberOfRounds, hackathonStartDate } = req.body;
+            const { title, description, numberOfRounds, hackathonStartDate } =
+                req.body;
 
             if (!title) {
                 return res.status(400).json({

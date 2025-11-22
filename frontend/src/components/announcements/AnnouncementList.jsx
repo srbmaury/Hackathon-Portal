@@ -1,19 +1,32 @@
-import React, { useState, useEffect, useImperativeHandle, forwardRef, useContext, useCallback } from "react";
+import React, {
+    forwardRef,
+    useCallback,
+    useContext,
+    useEffect,
+    useImperativeHandle,
+    useState,
+} from "react";
+
 import {
+    Alert,
     Box,
     CircularProgress,
-    Typography,
     Pagination,
-    Alert,
     Paper,
+    Typography,
 } from "@mui/material";
+
+import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { getAnnouncements } from "../../api/announcements";
-import AnnouncementItem from "./AnnouncementItem";
+
 import { AuthContext } from "../../context/AuthContext";
 import { getSocket } from "../../services/socket";
+import { getHackathonAnnouncements } from "../../api/hackathons";
+
+import AnnouncementItem from "./AnnouncementItem";
 
 const AnnouncementList = forwardRef((props, ref) => {
+    const { id } = useParams();
     const [announcements, setAnnouncements] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -35,7 +48,7 @@ const AnnouncementList = forwardRef((props, ref) => {
         try {
             setLoading(true);
             setError(null);
-            const response = await getAnnouncements(token, pageNum, limit);
+            const response = await getHackathonAnnouncements(id, token, pageNum, limit);
             setAnnouncements(response.announcements || []);
             setTotalPages(response.totalPages || 1);
             setTotal(response.total || 0);
@@ -46,7 +59,7 @@ const AnnouncementList = forwardRef((props, ref) => {
         } finally {
             setLoading(false);
         }
-    }, [token, t]);
+    }, [id, token, t]);
 
     // Expose refresh method to parent component
     useImperativeHandle(ref, () => ({

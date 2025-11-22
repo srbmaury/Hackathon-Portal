@@ -37,9 +37,7 @@ export const NotificationProvider = ({ children }) => {
 
         try {
             setLoading(true);
-            console.log("Fetching notifications with params:", params);
             const data = await getNotifications(params, token);
-            console.log("Notifications fetched:", data);
             setNotifications(data.notifications || []);
             setUnreadCount(data.unreadCount || 0);
         } catch (error) {
@@ -156,7 +154,6 @@ export const NotificationProvider = ({ children }) => {
     // Fetch notifications on mount and when user changes
     useEffect(() => {
         if (token && user) {
-            console.log("Fetching notifications for user:", user._id);
             fetchNotifications().catch(err => {
                 console.error("Failed to fetch notifications:", err);
             });

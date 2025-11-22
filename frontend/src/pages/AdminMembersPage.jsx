@@ -1,4 +1,9 @@
 import React, { useState, useEffect, useContext } from "react";
+
+// Routing & Context
+import { AuthContext } from "../context/AuthContext";
+
+// MUI Components
 import {
     Container,
     Typography,
@@ -11,10 +16,6 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
     TextField,
     Stack,
     Alert,
@@ -22,18 +23,25 @@ import {
     Autocomplete,
     InputAdornment,
 } from "@mui/material";
+
+// MUI Icons
 import {
     PersonAdd as PersonAddIcon,
     Edit as EditIcon,
     Search as SearchIcon,
 } from "@mui/icons-material";
-import DashboardLayout from "../components/dashboard/DashboardLayout";
+
+// i18n
 import { useTranslation } from "react-i18next";
-import { getUsersWithHackathonRoles, updateUserRole } from "../api/users";
-import { getAllHackathons, assignHackathonRole, removeHackathonRole } from "../api/hackathons";
-import { AuthContext } from "../context/AuthContext";
+
+// Internal Components
+import DashboardLayout from "../components/dashboard/DashboardLayout";
 import InfoModal from "../components/common/InfoModal";
 import ConfirmDialog from "../components/common/ConfirmDialog";
+
+// API Calls
+import { getUsersWithHackathonRoles, updateUserRole } from "../api/users";
+import { getAllHackathons, assignHackathonRole, removeHackathonRole } from "../api/hackathons";
 
 const AdminMembersPage = () => {
     const { t } = useTranslation();
@@ -58,11 +66,10 @@ const AdminMembersPage = () => {
     // Listen for real-time hackathon role updates via WebSocket
     useEffect(() => {
         const handleRoleUpdate = (event) => {
-            const { eventType, userId, role } = event.detail;
-            
+            const { role } = event.detail;
+
             // Only refresh if organizer role was assigned/removed
             if (role?.role === "organizer" || role === "organizer") {
-                console.log("Organizer role update received:", eventType, userId);
                 // Reload data to refresh organizer roles
                 loadData();
             }
@@ -117,13 +124,13 @@ const AdminMembersPage = () => {
         try {
             setAssigning(true);
             await assignHackathonRole(selectedHackathon._id, selectedUser._id, "organizer", token);
-            setInfoModal({ 
-                open: true, 
-                type: "success", 
-                message: t("user_management.organizer_assigned_success", { 
-                    name: selectedUser.name, 
-                    hackathon: selectedHackathon.title 
-                }) 
+            setInfoModal({
+                open: true,
+                type: "success",
+                message: t("user_management.organizer_assigned_success", {
+                    name: selectedUser.name,
+                    hackathon: selectedHackathon.title
+                })
             });
             handleCloseAssignDialog();
             loadData();
@@ -272,85 +279,85 @@ const AdminMembersPage = () => {
                             );
                         })
                         .map((member) => (
-                        <Card key={member._id} elevation={2}>
-                            <CardContent>
-                                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                                    <Box sx={{ flex: 1 }}>
-                                        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
-                                            <Typography variant="h6" fontWeight={600}>
-                                                {member.name}
-                                            </Typography>
-                                            <Chip 
-                                                label={t(`roles.${member.role}`)} 
-                                                color={member.role === "admin" ? "error" : "primary"}
-                                                size="small"
-                                            />
-                                        </Box>
-                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                            {member.email}
-                                        </Typography>
-
-                                        {/* Show organizer roles for this user */}
-                                        <Box sx={{ mt: 2 }}>
-                                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                                {t("user_management.organizer_roles_label")}
-                                            </Typography>
-                                            {member.organizerRoles && member.organizerRoles.length > 0 ? (
-                                                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                                                    {member.organizerRoles.map((orgRole) => (
-                                                        <Chip
-                                                            key={orgRole.roleId}
-                                                            label={orgRole.hackathonTitle || t("user_management.unknown_hackathon")}
-                                                            size="small"
-                                                            color="secondary"
-                                                            onDelete={String(member._id) === String(user._id) ? undefined : () => handleRemoveOrganizer(member._id, orgRole.hackathonId, orgRole.hackathonTitle)}
-                                                            deleteIcon={String(member._id) === String(user._id) ? undefined : <EditIcon />}
-                                                        />
-                                                    ))}
-                                                </Box>
-                                            ) : (
-                                                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
-                                                    {t("user_management.no_organizer_roles")}
+                            <Card key={member._id} elevation={2}>
+                                <CardContent>
+                                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                                        <Box sx={{ flex: 1 }}>
+                                            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+                                                <Typography variant="h6" fontWeight={600}>
+                                                    {member.name}
                                                 </Typography>
+                                                <Chip
+                                                    label={t(`roles.${member.role}`)}
+                                                    color={member.role === "admin" ? "error" : "primary"}
+                                                    size="small"
+                                                />
+                                            </Box>
+                                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                                {member.email}
+                                            </Typography>
+
+                                            {/* Show organizer roles for this user */}
+                                            <Box sx={{ mt: 2 }}>
+                                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                                    {t("user_management.organizer_roles_label")}
+                                                </Typography>
+                                                {member.organizerRoles && member.organizerRoles.length > 0 ? (
+                                                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                                                        {member.organizerRoles.map((orgRole) => (
+                                                            <Chip
+                                                                key={orgRole.roleId}
+                                                                label={orgRole.hackathonTitle || t("user_management.unknown_hackathon")}
+                                                                size="small"
+                                                                color="secondary"
+                                                                onDelete={String(member._id) === String(user._id) ? undefined : () => handleRemoveOrganizer(member._id, orgRole.hackathonId, orgRole.hackathonTitle)}
+                                                                deleteIcon={String(member._id) === String(user._id) ? undefined : <EditIcon />}
+                                                            />
+                                                        ))}
+                                                    </Box>
+                                                ) : (
+                                                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
+                                                        {t("user_management.no_organizer_roles")}
+                                                    </Typography>
+                                                )}
+                                            </Box>
+                                        </Box>
+                                        <Box sx={{ display: "flex", flexDirection: "column", gap: 1, ml: 2 }}>
+                                            {String(member._id) !== String(user._id) && (
+                                                <Button
+                                                    variant="outlined"
+                                                    startIcon={<PersonAddIcon />}
+                                                    onClick={() => handleOpenAssignDialog(member)}
+                                                >
+                                                    {t("user_management.assign_organizer")}
+                                                </Button>
+                                            )}
+                                            {member.role !== "admin" && (
+                                                member.role === "hackathon_creator" ? (
+                                                    <Button
+                                                        variant="outlined"
+                                                        color="warning"
+                                                        onClick={() => handleRemoveHackathonCreator(member)}
+                                                        size="small"
+                                                    >
+                                                        {t("user_management.remove_creator")}
+                                                    </Button>
+                                                ) : (
+                                                    <Button
+                                                        variant="contained"
+                                                        color="success"
+                                                        onClick={() => handleAssignHackathonCreator(member)}
+                                                        size="small"
+                                                    >
+                                                        {t("user_management.make_creator")}
+                                                    </Button>
+                                                )
                                             )}
                                         </Box>
                                     </Box>
-                                    <Box sx={{ display: "flex", flexDirection: "column", gap: 1, ml: 2 }}>
-                                        {String(member._id) !== String(user._id) && (
-                                            <Button
-                                                variant="outlined"
-                                                startIcon={<PersonAddIcon />}
-                                                onClick={() => handleOpenAssignDialog(member)}
-                                            >
-                                                {t("user_management.assign_organizer")}
-                                            </Button>
-                                        )}
-                                        {member.role !== "admin" && (
-                                            member.role === "hackathon_creator" ? (
-                                                <Button
-                                                    variant="outlined"
-                                                    color="warning"
-                                                    onClick={() => handleRemoveHackathonCreator(member)}
-                                                    size="small"
-                                                >
-                                                    {t("user_management.remove_creator")}
-                                                </Button>
-                                            ) : (
-                                                <Button
-                                                    variant="contained"
-                                                    color="success"
-                                                    onClick={() => handleAssignHackathonCreator(member)}
-                                                    size="small"
-                                                >
-                                                    {t("user_management.make_creator")}
-                                                </Button>
-                                            )
-                                        )}
-                                    </Box>
-                                </Box>
-                            </CardContent>
-                        </Card>
-                    ))}
+                                </CardContent>
+                            </Card>
+                        ))}
                 </Stack>
 
                 {allUsers.length === 0 && !loading && (
@@ -359,19 +366,19 @@ const AdminMembersPage = () => {
                     </Alert>
                 )}
 
-                {allUsers.length > 0 && 
-                 allUsers.filter((member) => {
-                     if (!searchTerm.trim()) return true;
-                     const search = searchTerm.toLowerCase();
-                     return (
-                         member.name?.toLowerCase().includes(search) ||
-                         member.email?.toLowerCase().includes(search)
-                     );
-                 }).length === 0 && (
-                    <Alert severity="info" sx={{ mt: 3 }}>
-                        {t("members.no_search_results", "No members match your search criteria")}
-                    </Alert>
-                )}
+                {allUsers.length > 0 &&
+                    allUsers.filter((member) => {
+                        if (!searchTerm.trim()) return true;
+                        const search = searchTerm.toLowerCase();
+                        return (
+                            member.name?.toLowerCase().includes(search) ||
+                            member.email?.toLowerCase().includes(search)
+                        );
+                    }).length === 0 && (
+                        <Alert severity="info" sx={{ mt: 3 }}>
+                            {t("members.no_search_results", "No members match your search criteria")}
+                        </Alert>
+                    )}
 
                 {/* Assign Organizer Dialog */}
                 <Dialog open={showAssignDialog} onClose={handleCloseAssignDialog} maxWidth="sm" fullWidth>

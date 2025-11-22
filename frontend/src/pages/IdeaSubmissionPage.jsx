@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from "react";
+
 import {
     Container,
+    Divider,
     Paper,
-    Typography,
     Stack,
     ToggleButton,
     ToggleButtonGroup,
-    Divider,
+    Typography,
 } from "@mui/material";
+
+import { useTranslation } from "react-i18next";
+
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import IdeaForm from "../components/ideas/IdeaForm";
 import IdeasTable from "../components/ideas/IdeasTable";
+
 import { getUserIdeas } from "../api/ideas";
-import { useTranslation } from "react-i18next";
 
 const IdeaSubmissionPage = () => {
     const { t } = useTranslation();

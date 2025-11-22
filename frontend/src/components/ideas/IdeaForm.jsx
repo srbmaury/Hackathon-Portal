@@ -8,9 +8,11 @@ import {
     Button,
     Stack,
 } from "@mui/material";
-import { submitIdea } from "../../api/ideas";
+
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
+
+import { submitIdea } from "../../api/ideas";
 
 const IdeaForm = ({ token, onIdeaSubmitted }) => {
     const { t } = useTranslation();

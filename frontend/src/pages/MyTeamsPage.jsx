@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+
+// MUI Components
 import {
     Box,
     Typography,
@@ -15,11 +17,21 @@ import {
     Container,
 } from "@mui/material";
 import { Message as MessageIcon } from "@mui/icons-material";
+
+// i18n
 import { useTranslation } from "react-i18next";
+
+// Notifications
 import toast from "react-hot-toast";
+
+// Layouts & Components
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import HackathonRegisterModal from "../components/teams/HackathonRegisterModal";
+
+// Context
 import { AuthContext } from "../context/AuthContext";
+
+// API
 import { getMyTeams, withdrawTeam } from "../api/registrations";
 
 const MyTeamsPage = () => {
@@ -36,13 +48,8 @@ const MyTeamsPage = () => {
         setLoading(true);
         try {
             const res = await getMyTeams(token);
-            console.log("My Teams API Response (full):", JSON.stringify(res, null, 2));
             // Handle both direct array and object with teams property
             const teamsData = Array.isArray(res) ? res : (res.teams || []);
-            console.log("Teams data after processing:", teamsData);
-            if (teamsData.length > 0) {
-                console.log("First team sample:", JSON.stringify(teamsData[0], null, 2));
-            }
             setTeams(teamsData);
         } catch (err) {
             console.error("Error fetching teams:", err);
@@ -60,8 +67,7 @@ const MyTeamsPage = () => {
 
     // Listen for real-time team updates via WebSocket
     useEffect(() => {
-        const handleTeamUpdate = (event) => {
-            console.log("Team update received on My Teams page:", event.detail);
+        const handleTeamUpdate = () => {
             // Refresh teams list when team is created, updated, or deleted
             fetchTeams();
         };
@@ -76,10 +82,10 @@ const MyTeamsPage = () => {
     const handleWithdraw = async (team) => {
         try {
             // Handle both populated object and ID string
-            const hackathonId = typeof team.hackathon === "string" 
-                ? team.hackathon 
+            const hackathonId = typeof team.hackathon === "string"
+                ? team.hackathon
                 : team.hackathon?._id;
-            
+
             if (!hackathonId) {
                 toast.error(t("hackathon.withdraw_failed") || "Invalid hackathon data");
                 return;
@@ -121,7 +127,7 @@ const MyTeamsPage = () => {
         if (!team || !team.members) return "-";
         if (!Array.isArray(team.members)) return "-";
         if (team.members.length === 0) return "-";
-        
+
         const memberNames = team.members
             .map((m) => {
                 if (typeof m === "object" && m !== null) {
@@ -130,7 +136,7 @@ const MyTeamsPage = () => {
                 return "-";
             })
             .filter((name) => name !== "-");
-        
+
         return memberNames.length > 0 ? memberNames.join(", ") : "-";
     };
 
@@ -139,8 +145,8 @@ const MyTeamsPage = () => {
             <Container maxWidth="lg">
                 <Box sx={{ mb: 4 }}>
                     <Typography variant="h4" fontWeight={700} gutterBottom>
-                {t("teams.my_teams") || "My Teams"}
-            </Typography>
+                        {t("teams.my_teams") || "My Teams"}
+                    </Typography>
                     <Typography variant="body2" color="text.secondary">
                         {t("teams.my_teams_description", "View and manage all teams you are a member of")}
                     </Typography>
@@ -157,8 +163,8 @@ const MyTeamsPage = () => {
                 ) : (
                     <Paper variant="outlined" sx={{ overflow: "auto" }}>
                         <Table>
-                    <TableHead>
-                        <TableRow>
+                            <TableHead>
+                                <TableRow>
                                     <TableCell sx={{ fontWeight: 600 }}>
                                         {t("hackathon.name") || "Hackathon"}
                                     </TableCell>
@@ -174,90 +180,72 @@ const MyTeamsPage = () => {
                                     <TableCell sx={{ fontWeight: 600 }} align="right">
                                         {t("common.actions") || "Actions"}
                                     </TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
                                 {teams.map((team) => {
                                     const teamName = getTeamName(team);
                                     const hackathonTitle = getHackathonTitle(team);
                                     const ideaTitle = getIdeaTitle(team);
                                     const membersList = getMembersList(team);
-                                    
-                                    console.log("Rendering team:", team._id, {
-                                        rawName: team.name,
-                                        processedName: teamName,
-                                        rawHackathon: team.hackathon,
-                                        processedHackathon: hackathonTitle,
-                                        rawIdea: team.idea,
-                                        processedIdea: ideaTitle,
-                                        rawMembers: team.members,
-                                        processedMembers: membersList,
-                                        fullTeam: team
-                                    });
-                                    
+
                                     return (
-                                    <TableRow key={team._id} hover>
-                                        <TableCell>{hackathonTitle}</TableCell>
-                                        <TableCell>
-                                            <Typography variant="body2" fontWeight={500}>
-                                                {teamName}
-                                            </Typography>
-                                        </TableCell>
-                                        <TableCell>{ideaTitle}</TableCell>
-                                        <TableCell>{membersList}</TableCell>
-                                        <TableCell align="right">
-                                            <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
-                                                <Button
-                                                    variant="outlined"
-                                                    size="small"
-                                                    startIcon={<MessageIcon />}
-                                                    onClick={() => navigate(`/teams/${team._id}/chat`)}
-                                                >
-                                                    {t("chat.open_chat") || "Chat"}
-                                                </Button>
-                                                <Button
-                                                    variant="outlined"
-                                                    size="small"
-                                                    onClick={() => {
-                                                        setEditTeam(team);
-                                                        setOpenEdit(true);
-                                                    }}
-                                                >
-                                                {t("common.edit") || "Edit"}
-                                            </Button>
-                                                <Button
-                                                    variant="outlined"
-                                                    color="error"
-                                                    size="small"
-                                                    onClick={() => handleWithdraw(team)}
-                                                >
-                                                {t("hackathon.withdraw") || "Withdraw"}
-                                            </Button>
-                                            </Box>
-                                        </TableCell>
-                            </TableRow>
+                                        <TableRow key={team._id} hover>
+                                            <TableCell>{hackathonTitle}</TableCell>
+                                            <TableCell>
+                                                <Typography variant="body2" fontWeight={500}>
+                                                    {teamName}
+                                                </Typography>
+                                            </TableCell>
+                                            <TableCell>{ideaTitle}</TableCell>
+                                            <TableCell>{membersList}</TableCell>
+                                            <TableCell align="right">
+                                                <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
+                                                    <Button
+                                                        variant="outlined"
+                                                        size="small"
+                                                        startIcon={<MessageIcon />}
+                                                        onClick={() => navigate(`/teams/${team._id}/chat`)}
+                                                    >
+                                                        {t("chat.open_chat") || "Chat"}
+                                                    </Button>
+                                                    <Button
+                                                        variant="outlined"
+                                                        size="small"
+                                                        onClick={() => {
+                                                            setEditTeam(team);
+                                                            setOpenEdit(true);
+                                                        }}
+                                                    >
+                                                        {t("common.edit") || "Edit"}
+                                                    </Button>
+                                                    <Button
+                                                        variant="outlined"
+                                                        color="error"
+                                                        size="small"
+                                                        onClick={() => handleWithdraw(team)}
+                                                    >
+                                                        {t("hackathon.withdraw") || "Withdraw"}
+                                                    </Button>
+                                                </Box>
+                                            </TableCell>
+                                        </TableRow>
                                     );
                                 })}
-                    </TableBody>
-                </Table>
-            </Paper>
+                            </TableBody>
+                        </Table>
+                    </Paper>
                 )}
 
-                    <HackathonRegisterModal
-                        open={openEdit}
+                <HackathonRegisterModal
+                    open={openEdit}
                     onClose={() => {
                         setOpenEdit(false);
                         setEditTeam(null);
                     }}
-                        hackathon={editTeam?.hackathon}
-                        team={editTeam}
-                        onRegistered={() => {
-                            // refresh list after edit
-                            fetchTeams();
-                            setOpenEdit(false);
-                            setEditTeam(null);
-                        }}
-                    />
+                    hackathon={editTeam?.hackathon}
+                    team={editTeam}
+                />
             </Container>
         </DashboardLayout>
     );

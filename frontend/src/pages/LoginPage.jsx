@@ -1,7 +1,8 @@
 import React from "react";
 import { Typography, Box, Paper } from "@mui/material";
-import GoogleLoginButton from "../components/auth/GoogleLoginButton";
 import { useTranslation } from "react-i18next";
+import GoogleLoginButton from "../components/auth/GoogleLoginButton";
+import TestLoginPanel from "../components/auth/TestLoginPanel";
 
 const LoginPage = () => {
     const { t } = useTranslation();
@@ -60,6 +61,9 @@ const LoginPage = () => {
                     © 2025 {t("auth.app_title")}. {t("auth.all_rights_reserved")}
                 </Typography>
             </Paper>
+
+            {/* Test Login Panel - only visible in development */}
+            <TestLoginPanel />
         </Box>
     );
 };

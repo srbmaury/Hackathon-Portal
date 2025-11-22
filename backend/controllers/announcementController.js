@@ -290,7 +290,6 @@ class AnnouncementController {
      */
     async enhance(req, res) {
         try {
-            const { hackathonId } = req.params;
             const { title, message } = req.body;
 
             if (!title || !message) {

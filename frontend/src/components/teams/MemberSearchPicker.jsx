@@ -1,4 +1,3 @@
-// src/components/hackathons/MemberSearchPicker.jsx
 import React, { useEffect, useMemo, useState, useContext } from "react";
 import {
     TextField,
@@ -112,22 +111,22 @@ const MemberSearchPicker = ({ users, selectedIds = [], onChange, maxTeamSize = n
                     const isSelected = selectedIds.includes(u._id);
                     // Allow removal of selected members even when at max, but prevent adding new ones
                     const isDisabled = isCurrentUser || (isMaxReached && !isSelected);
-                    
+
                     return (
-                        <ListItem 
-                            key={u._id} 
-                            button 
+                        <ListItem
+                            key={u._id}
+                            button
                             onClick={() => handleToggle(u._id)}
                             disabled={isDisabled}
                         >
-                        <Checkbox
+                            <Checkbox
                                 checked={isSelected}
-                            tabIndex={-1}
-                            disableRipple
+                                tabIndex={-1}
+                                disableRipple
                                 disabled={isDisabled}
-                        />
-                        <ListItemText primary={u.name} secondary={u.email} />
-                    </ListItem>
+                            />
+                            <ListItemText primary={u.name} secondary={u.email} />
+                        </ListItem>
                     );
                 })}
             </List>

@@ -1,33 +1,40 @@
 import React, { useState } from "react";
+
 import {
+    Box,
+    Button,
     Card,
     CardContent,
-    Typography,
-    Divider,
-    Box,
-    IconButton,
     Dialog,
-    DialogTitle,
-    DialogContent,
     DialogActions,
-    Button,
+    DialogContent,
+    DialogTitle,
+    Divider,
+    IconButton,
     TextField,
+    Typography,
     useTheme,
 } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
+
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
+
 import CircularProgress from "@mui/material/CircularProgress";
+
 import dayjs from "dayjs";
 import MDEditor from "@uiw/react-md-editor";
-import MarkdownViewer from "../common/MarkdownViewer";
 import toast from "react-hot-toast";
-import { updateAnnouncement, formatAnnouncement } from "../../api/announcements";
-import { updateHackathonAnnouncement } from "../../api/hackathons";
-import { useTranslation } from "react-i18next";
-import { getSocket } from "../../services/socket";
 
-const AnnouncementItem = ({ announcement, user, onUpdated, onDeleted, hackathonId, myRole }) => {
+import { useTranslation } from "react-i18next";
+
+import MarkdownViewer from "../common/MarkdownViewer";
+
+import { getSocket } from "../../services/socket";
+import { updateHackathonAnnouncement } from "../../api/hackathons";
+import { updateAnnouncement, formatAnnouncement } from "../../api/announcements";
+
+const AnnouncementItem = ({ announcement, user, onUpdated, hackathonId, myRole }) => {
     const [editing, setEditing] = useState(false);
     const [editedMessage, setEditedMessage] = useState(announcement.message);
     const [editedTitle, setEditedTitle] = useState(announcement.title);
