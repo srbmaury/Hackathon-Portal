@@ -1,247 +1,158 @@
-name: 🧠 PR Summary Generator
+name: PR Summary Generator
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  push:
+    branches-ignore:
+      - main
+      - master
 
 jobs:
-  summarize:
-    name: Generate PR Summary
+  generate-summary:
     runs-on: ubuntu-latest
-
     permissions:
       contents: read
       pull-requests: write
-
+      
     steps:
-      - name: 🛠️ Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # <-- important! ensures full git history
+          fetch-depth: 0  # Get full history for better diffs
 
-      - name: 🔄 Ensure main branch is available
+      - name: Get PR number
+        id: pr
         run: |
-          git fetch origin main
-          echo "✅ Main branch fetched."
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+          else
+            # For push events, find the PR number
+            PR_NUMBER=$(gh pr list --head ${{ github.ref_name }} --json number --jq '.[0].number' 2>/dev/null || echo "")
+            if [ -z "$PR_NUMBER" ]; then
+              echo "No PR found for this branch. Skipping comment updates."
+              echo "number=" >> $GITHUB_OUTPUT
+            else
+              echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
+            fi
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 📊 Get changed files statistics
-        id: file-stats
+      - name: Generate Summary
+        id: summary
         run: |
-          BASE_BRANCH=$(git merge-base origin/main HEAD || echo "origin/main")
+          # Get statistics
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | wc -l | tr -d ' ')
+          TOTAL_COMMITS=$(git rev-list --count origin/${{ github.base_ref }}..HEAD)
+          ADDITIONS=$(git diff --numstat origin/${{ github.base_ref }}...HEAD | awk '{sum+=$1} END {print sum+0}')
+          DELETIONS=$(git diff --numstat origin/${{ github.base_ref }}...HEAD | awk '{sum+=$2} END {print sum+0}')
           
-          # Get list of changed files with status
-          git diff --name-status $BASE_BRANCH > file-changes.txt
+          # Get recent commits (last 5 only)
+          RECENT_COMMITS=$(git log --oneline origin/${{ github.base_ref }}..HEAD | head -5)
           
-          # Get detailed diff
-          git diff $BASE_BRANCH > changes.diff
+          # Categorize changed files
+          TEST_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E "(test|spec)" | wc -l | tr -d ' ')
+          COMPONENT_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E "(components|pages)" | wc -l | tr -d ' ')
+          API_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E "api/" | wc -l | tr -d ' ')
+          CONFIG_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E "(\.yml|\.yaml|\.json|config)" | wc -l | tr -d ' ')
           
-          # Count changes
-          FILES_CHANGED=$(wc -l < file-changes.txt | tr -d ' ')
-          ADDITIONS=$(git diff --numstat $BASE_BRANCH | awk '{sum+=$1} END {print sum}')
-          DELETIONS=$(git diff --numstat $BASE_BRANCH | awk '{sum+=$2} END {print sum}')
+          # Get file list (max 10 files, formatted as list)
+          CHANGED_FILE_LIST=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | head -10 | while read file; do echo "- \`$file\`"; done)
           
-          echo "FILES_CHANGED=$FILES_CHANGED" >> $GITHUB_OUTPUT
-          echo "ADDITIONS=$ADDITIONS" >> $GITHUB_OUTPUT
-          echo "DELETIONS=$DELETIONS" >> $GITHUB_OUTPUT
+          # Generate concise summary
+          cat > summary.md << EOF
+          ## 📊 PR Summary
           
-          echo "✅ Statistics gathered: $FILES_CHANGED files, +$ADDITIONS/-$DELETIONS"
-
-      - name: 📋 Prepare file changes list
-        id: file-list
-        run: |
-          echo "FILE_LIST<<EOF" >> $GITHUB_OUTPUT
-          cat file-changes.txt | while read status file; do
-            case $status in
-              A) echo "- 🆕 **Added:** \`$file\`" ;;
-              M) echo "- ✏️ **Modified:** \`$file\`" ;;
-              D) echo "- 🗑️ **Deleted:** \`$file\`" ;;
-              R*) echo "- 🔄 **Renamed:** \`$file\`" ;;
-              *) echo "- 📝 **Changed:** \`$file\`" ;;
-            esac
-          done >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: 📝 Generate Detailed Summary
-        id: detailed-summary
-        run: |
-          echo "🔍 Analyzing changes in detail..."
-          BASE_BRANCH=$(git merge-base origin/main HEAD || echo "origin/main")
+          **📈 Stats:** \`$CHANGED_FILES\` files changed | \`+$ADDITIONS\` / \`-$DELETIONS\` lines | \`$TOTAL_COMMITS\` commits
           
-          # Create a detailed analysis of changes
-          cat << 'EOF' > summary.md
-          #### 📝 Detailed Changes
+          **📦 Changes:**
+          - 🧪 Tests: \`$TEST_FILES\` files
+          - 🎨 Components/Pages: \`$COMPONENT_FILES\` files  
+          - 🔌 API: \`$API_FILES\` files
+          - ⚙️ Config: \`$CONFIG_FILES\` files
           
+          **📝 Recent Commits:**
+          \`\`\`
+          $RECENT_COMMITS
+          \`\`\`
+          
+          **📁 Key Files Changed:**
+          $CHANGED_FILE_LIST
+          $([ "$CHANGED_FILES" -gt 10 ] && echo "\n_... and $((CHANGED_FILES - 10)) more files_")
+          
+          ---
+          _Auto-updated • Tests running..._
           EOF
           
-          # Analyze each changed file
-          git diff --name-status $BASE_BRANCH | while read status file; do
-            echo "" >> summary.md
-            case $status in
-              A)
-                echo "**🆕 New File: \`$file\`**" >> summary.md
-                # Count lines in new file
-                LINES=$(git show HEAD:"$file" 2>/dev/null | wc -l | tr -d ' ')
-                echo "  - Added $LINES lines" >> summary.md
-                ;;
-              M)
-                echo "**✏️ Modified: \`$file\`**" >> summary.md
-                # Get additions and deletions
-                STATS=$(git diff --numstat $BASE_BRANCH -- "$file")
-                ADDED=$(echo "$STATS" | awk '{print $1}')
-                REMOVED=$(echo "$STATS" | awk '{print $2}')
-                echo "  - Changed: +$ADDED/-$REMOVED lines" >> summary.md
-                
-                # Try to identify what changed
-                if git diff $BASE_BRANCH -- "$file" | grep -q "^+.*function\|^+.*const\|^+.*export"; then
-                  echo "  - 🔧 Code modifications detected" >> summary.md
-                fi
-                if git diff $BASE_BRANCH -- "$file" | grep -q "^+.*test\|^+.*describe\|^+.*it("; then
-                  echo "  - ✅ Test updates included" >> summary.md
-                fi
-                if git diff $BASE_BRANCH -- "$file" | grep -q "^+.*import\|^+.*require"; then
-                  echo "  - 📦 Dependency changes" >> summary.md
-                fi
-                ;;
-              D)
-                echo "**🗑️ Deleted: \`$file\`**" >> summary.md
-                ;;
-              R*)
-                NEW_FILE=$(echo "$file" | cut -f2)
-                echo "**🔄 Renamed: \`$file\` → \`$NEW_FILE\`**" >> summary.md
-                ;;
-            esac
-          done
-          
-          echo "" >> summary.md
-          echo "#### 🎯 Summary" >> summary.md
-          
-          # Count test files
-          TEST_FILES=$(git diff --name-status $BASE_BRANCH | grep -c "test\|spec" || echo "0")
-          if [ "$TEST_FILES" -gt 0 ]; then
-            echo "- ✅ **Testing:** $TEST_FILES test file(s) modified/added" >> summary.md
-          fi
-          
-          # Check for config changes
-          CONFIG_FILES=$(git diff --name-status $BASE_BRANCH | grep -c "config\|\.yml\|\.yaml\|\.json" || echo "0")
-          if [ "$CONFIG_FILES" -gt 0 ]; then
-            echo "- ⚙️ **Configuration:** $CONFIG_FILES config file(s) updated" >> summary.md
-          fi
-          
-          # Check for documentation
-          DOC_FILES=$(git diff --name-status $BASE_BRANCH | grep -c "README\|\.md\|docs/" || echo "0")
-          if [ "$DOC_FILES" -gt 0 ]; then
-            echo "- 📚 **Documentation:** Updated" >> summary.md
-          fi
-          
-          echo "DETAILED_SUMMARY<<EOF" >> $GITHUB_OUTPUT
-          cat summary.md >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "✅ Detailed summary generated"
+          # Save for next step
+          cat summary.md > $GITHUB_STEP_SUMMARY
 
-      - name: 🤖 Try AI Enhancement (Optional)
-        id: ai-summary
+      - name: Find existing comment
+        id: find-comment
+        if: steps.pr.outputs.number != ''
+        uses: peter-evans/find-comment@v2
+        with:
+          issue-number: ${{ steps.pr.outputs.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '📊 PR Summary'
+
+      - name: Update or Create PR Comment
+        if: steps.pr.outputs.number != ''
+        id: create-comment
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          issue-number: ${{ steps.pr.outputs.number }}
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          body-path: summary.md
+          edit-mode: replace
+
+      - name: Run Backend Tests
+        working-directory: backend
+        run: |
+          npm ci
+          npm test
         continue-on-error: true
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          if [ -z "$OPENAI_API_KEY" ]; then
-            echo "⚠️ OPENAI_API_KEY not configured, skipping AI enhancement"
-            echo "AI_AVAILABLE=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          echo "🧠 Attempting AI-powered analysis..."
-          
-          # Prepare a condensed diff (first 10000 chars)
-          DIFF_SAMPLE=$(head -c 10000 changes.diff | sed 's/"/\\"/g' | sed 's/$/\\n/' | tr -d '\n')
-          
-          # Make API call with better error handling
-          RESPONSE=$(curl -s -w "\n%{http_code}" https://api.openai.com/v1/chat/completions \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $OPENAI_API_KEY" \
-            -d "{
-              \"model\": \"gpt-4o-mini\",
-              \"messages\": [
-                {
-                  \"role\": \"system\",
-                  \"content\": \"You are a code reviewer. Summarize PR changes in 3-5 clear bullet points.\"
-                },
-                {
-                  \"role\": \"user\",
-                  \"content\": \"Summarize these changes concisely:\\n\\n$DIFF_SAMPLE\"
-                }
-              ],
-              \"temperature\": 0.3,
-              \"max_tokens\": 500
-            }")
-          
-          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-          BODY=$(echo "$RESPONSE" | head -n-1)
-          
-          if [ "$HTTP_CODE" = "200" ]; then
-            AI_SUMMARY=$(echo "$BODY" | jq -r '.choices[0].message.content // empty')
-            if [ -n "$AI_SUMMARY" ]; then
-              echo "AI_SUMMARY<<EOF" >> $GITHUB_OUTPUT
-              echo "" >> $GITHUB_OUTPUT
-              echo "#### 🤖 AI Insights" >> $GITHUB_OUTPUT
-              echo "$AI_SUMMARY" >> $GITHUB_OUTPUT
-              echo "EOF" >> $GITHUB_OUTPUT
-              echo "AI_AVAILABLE=true" >> $GITHUB_OUTPUT
-              echo "✅ AI summary generated successfully"
-            else
-              echo "AI_AVAILABLE=false" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "⚠️ OpenAI API returned status $HTTP_CODE"
-            echo "AI_AVAILABLE=false" >> $GITHUB_OUTPUT
-          fi
 
-      - name: 💬 Post PR Comment
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          REPO: ${{ github.repository }}
+      - name: Generate Test Coverage
+        working-directory: backend
+        run: npm run test:coverage
+        continue-on-error: true
+
+      - name: Update Summary with Test Results
+        if: always()
         run: |
-          # Build the comment body
-          cat << 'COMMENT_EOF' > comment.md
-          ## 🤖 Automated PR Analysis
-          
-          ### 📊 Change Statistics
-          - **Files Changed:** ${{ steps.file-stats.outputs.FILES_CHANGED }}
-          - **Lines Added:** +${{ steps.file-stats.outputs.ADDITIONS }}
-          - **Lines Deleted:** -${{ steps.file-stats.outputs.DELETIONS }}
-          
-          ---
-          
-          ### 📁 Files Changed
-          ${{ steps.file-list.outputs.FILE_LIST }}
-          
-          ---
-          
-          ${{ steps.detailed-summary.outputs.DETAILED_SUMMARY }}
-          
-          COMMENT_EOF
-          
-          # Add AI summary if available
-          if [ "${{ steps.ai-summary.outputs.AI_AVAILABLE }}" = "true" ]; then
-            cat << 'AI_EOF' >> comment.md
-          
-          ---
-          
-          ${{ steps.ai-summary.outputs.AI_SUMMARY }}
-          AI_EOF
+          # Get test results if available (jq is pre-installed on GitHub runners)
+          if [ -f backend/coverage/coverage-summary.json ]; then
+            BACKEND_COV=$(jq -r '.total.lines.pct // "N/A"' backend/coverage/coverage-summary.json 2>/dev/null || echo "N/A")
+            BACKEND_COV=$(printf "%.1f" "$BACKEND_COV" 2>/dev/null || echo "$BACKEND_COV")
+          else
+            BACKEND_COV="N/A"
           fi
+          
+          # Update summary with test results - replace the "Tests running" line
+          sed -i 's/_Auto-updated.*Tests running\.\.\._/✅ **Tests Completed** | Backend Coverage: `'"$BACKEND_COV"'%` | '$(date -u +"%H:%M:%S UTC")'/' summary.md
           
           # Add footer
-          cat << 'FOOTER_EOF' >> comment.md
-          
-          ---
-          
-          <sub>🤖 Generated automatically | Review carefully and use your judgment</sub>
-          FOOTER_EOF
-          
-          # Post the comment
-          gh pr comment $PR_NUMBER --body-file comment.md
-          
-          echo "💬 Bulletwise summary posted to PR #$PR_NUMBER"
+          echo "" >> summary.md
+          echo "---" >> summary.md
+          echo "_Last updated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")_" >> summary.md
+
+      - name: Find existing comment again
+        id: find-comment-again
+        if: always() && steps.pr.outputs.number != ''
+        uses: peter-evans/find-comment@v2
+        with:
+          issue-number: ${{ steps.pr.outputs.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '📊 PR Summary'
+
+      - name: Update PR Comment with Test Results
+        if: always() && steps.pr.outputs.number != ''
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          issue-number: ${{ steps.pr.outputs.number }}
+          comment-id: ${{ steps.find-comment-again.outputs.comment-id }}
+          body-path: summary.md
+          edit-mode: replace
+
