@@ -73,15 +73,31 @@ describe("Socket.IO Server", () => {
     });
 
     afterAll(async () => {
-        if (clientSocket) {
+        // Close all socket connections first
+        if (clientSocket && clientSocket.connected) {
             clientSocket.disconnect();
+            // Wait a bit for disconnect to complete
+            await new Promise((resolve) => setTimeout(resolve, 100));
         }
+        
+        // Close Socket.IO server
         if (io) {
             io.close();
+            // Wait for server to close
+            await new Promise((resolve) => setTimeout(resolve, 100));
         }
+        
+        // Close HTTP server
         if (httpServer) {
-            httpServer.close();
+            await new Promise((resolve) => {
+                httpServer.close(() => resolve());
+            });
         }
+        
+        // Wait a bit more to ensure all operations complete
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        
+        // Finally close database
         await closeTestDb();
     });
 
