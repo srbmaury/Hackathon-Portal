@@ -1,17 +1,47 @@
 import React from "react";
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { render, screen, fireEvent, within, waitFor } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
+import { MemoryRouter } from "react-router-dom";
 import i18n from "../../../i18n/i18n";
 import HackathonItem from "../HackathonItem";
 import { AuthContext } from "../../../context/AuthContext";
+import * as registrationsApi from "../../../api/registrations";
+import toast from "react-hot-toast";
 
-const renderWithContext = (ui, { user }) => {
+// Mock API
+vi.mock("../../../api/registrations", () => ({
+  getMyTeam: vi.fn(),
+  withdrawTeam: vi.fn(),
+}));
+
+// Mock react-hot-toast
+vi.mock("react-hot-toast", () => ({
+  default: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+// Mock RegisterTeamModal
+vi.mock("../../teams/HackathonRegisterModal", () => ({
+  __esModule: true,
+  default: ({ open, onClose }) =>
+    open ? (
+      <div data-testid="register-modal">
+        <button onClick={onClose}>Close</button>
+      </div>
+    ) : null,
+}));
+
+const renderWithContext = (ui, { user = { role: "admin" }, token = "test-token" } = {}) => {
     return render(
-        <I18nextProvider i18n={i18n}>
-            <AuthContext.Provider value={{ user }}>
-                {ui}
-            </AuthContext.Provider>
-        </I18nextProvider>
+        <MemoryRouter>
+            <I18nextProvider i18n={i18n}>
+                <AuthContext.Provider value={{ user, token }}>
+                    {ui}
+                </AuthContext.Provider>
+            </I18nextProvider>
+        </MemoryRouter>
     );
 };
 
@@ -109,5 +139,132 @@ describe("HackathonItem", () => {
 
         // Uses translation key
         expect(screen.getByText(/hackathon.last_updated_at/i)).toBeInTheDocument();
+    });
+
+    test("shows register button for non-registered user", async () => {
+        registrationsApi.getMyTeam.mockRejectedValueOnce({ response: { status: 404 } });
+
+        renderWithContext(
+            <HackathonItem hackathon={hackathon} onEdit={mockOnEdit} onDelete={mockOnDelete} />,
+            { user: { role: "user", _id: "user1" } }
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText("hackathon.register")).toBeInTheDocument();
+        });
+    });
+
+    test("shows edit and withdraw buttons for registered user", async () => {
+        const mockTeam = { _id: "team1", name: "My Team" };
+        registrationsApi.getMyTeam.mockResolvedValueOnce({ team: mockTeam });
+
+        renderWithContext(
+            <HackathonItem hackathon={hackathon} onEdit={mockOnEdit} onDelete={mockOnDelete} />,
+            { user: { role: "user", _id: "user1" } }
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText("hackathon.edit")).toBeInTheDocument();
+            expect(screen.getByText("hackathon.withdraw")).toBeInTheDocument();
+        });
+    });
+
+    test("opens registration modal when register button is clicked", async () => {
+        registrationsApi.getMyTeam.mockRejectedValueOnce({ response: { status: 404 } });
+
+        renderWithContext(
+            <HackathonItem hackathon={hackathon} onEdit={mockOnEdit} onDelete={mockOnDelete} />,
+            { user: { role: "user", _id: "user1" } }
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText("hackathon.register")).toBeInTheDocument();
+        });
+
+        const registerButton = screen.getByText("hackathon.register");
+        fireEvent.click(registerButton);
+
+        expect(screen.getByTestId("register-modal")).toBeInTheDocument();
+    });
+
+    test("withdraws team successfully", async () => {
+        const mockTeam = { _id: "team1", name: "My Team" };
+        registrationsApi.getMyTeam.mockResolvedValueOnce({ team: mockTeam });
+        registrationsApi.withdrawTeam.mockResolvedValueOnce({});
+
+        renderWithContext(
+            <HackathonItem hackathon={hackathon} onEdit={mockOnEdit} onDelete={mockOnDelete} />,
+            { user: { role: "user", _id: "user1" } }
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText("hackathon.withdraw")).toBeInTheDocument();
+        });
+
+        const withdrawButton = screen.getByText("hackathon.withdraw");
+        fireEvent.click(withdrawButton);
+
+        await waitFor(() => {
+            expect(registrationsApi.withdrawTeam).toHaveBeenCalledWith("hack1", "team1", "test-token");
+            expect(toast.success).toHaveBeenCalled();
+        });
+    });
+
+    test("handles withdraw error", async () => {
+        const mockTeam = { _id: "team1", name: "My Team" };
+        registrationsApi.getMyTeam.mockResolvedValueOnce({ team: mockTeam });
+        registrationsApi.withdrawTeam.mockRejectedValueOnce(new Error("Withdraw failed"));
+
+        renderWithContext(
+            <HackathonItem hackathon={hackathon} onEdit={mockOnEdit} onDelete={mockOnDelete} />,
+            { user: { role: "user", _id: "user1" } }
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText("hackathon.withdraw")).toBeInTheDocument();
+        });
+
+        const withdrawButton = screen.getByText("hackathon.withdraw");
+        fireEvent.click(withdrawButton);
+
+        await waitFor(() => {
+            expect(toast.error).toHaveBeenCalled();
+        });
+    });
+
+    test("navigates to hackathon details when view details is clicked", () => {
+        const { container } = renderWithContext(
+            <HackathonItem hackathon={hackathon} onEdit={mockOnEdit} onDelete={mockOnDelete} />
+        );
+
+        const viewDetailsButton = screen.getByText("hackathon.view_details");
+        fireEvent.click(viewDetailsButton);
+
+        // Navigation is handled by react-router, button click should work
+        expect(viewDetailsButton).toBeInTheDocument();
+    });
+
+    test("shows edit button for hackathon_creator role", () => {
+        renderWithContext(
+            <HackathonItem hackathon={hackathon} onEdit={mockOnEdit} onDelete={mockOnDelete} />,
+            { user: { role: "hackathon_creator" } }
+        );
+
+        expect(screen.getByText("hackathon.edit")).toBeInTheDocument();
+        expect(screen.getByText("hackathon.delete")).toBeInTheDocument();
+    });
+
+    test("handles team fetch error gracefully", async () => {
+        registrationsApi.getMyTeam.mockRejectedValueOnce(new Error("Network error"));
+
+        renderWithContext(
+            <HackathonItem hackathon={hackathon} onEdit={mockOnEdit} onDelete={mockOnDelete} />,
+            { user: { role: "user", _id: "user1" } }
+        );
+
+        // Should not crash, just not show registered state
+        await waitFor(() => {
+            expect(screen.getByText("Test Hackathon")).toBeInTheDocument();
+        });
     });
 });

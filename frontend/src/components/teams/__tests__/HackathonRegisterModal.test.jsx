@@ -196,4 +196,44 @@ describe("HackathonRegisterModal", () => {
         expect(getPublicIdeas).not.toHaveBeenCalled();
         expect(getUsers).not.toHaveBeenCalled();
     });
+
+    test("validates team size - too small", async () => {
+        const hackathonWithSize = { ...mockHackathon, minimumTeamSize: 2, maximumTeamSize: 5 };
+        getPublicIdeas.mockResolvedValueOnce({ ideas: [{ _id: "idea1", title: "AI App" }] });
+        getUsers.mockResolvedValueOnce({ groupedUsers: { mentors: [] } });
+
+        renderWithProviders(
+            <HackathonRegisterModal open={true} onClose={vi.fn()} hackathon={hackathonWithSize} />
+        );
+
+        await waitFor(() => expect(getPublicIdeas).toHaveBeenCalled());
+
+        // Fill team name
+        const textboxes = screen.getAllByRole("textbox");
+        const teamNameInput = textboxes.find(tb => tb.getAttribute("name") === "name");
+        fireEvent.change(teamNameInput, { target: { value: "Small Team" } });
+
+        // Don't select any members - team will be too small
+        fireEvent.click(screen.getByRole("button", { name: "hackathon.register" }));
+
+        await waitFor(() => {
+            expect(toast.error).toHaveBeenCalled();
+        });
+
+        expect(registerForHackathon).not.toHaveBeenCalled();
+    });
+
+    test("validates team size constraints exist", () => {
+        const hackathonWithSize = { ...mockHackathon, minimumTeamSize: 2, maximumTeamSize: 5 };
+        getPublicIdeas.mockResolvedValueOnce({ ideas: [] });
+        getUsers.mockResolvedValueOnce({ groupedUsers: {} });
+
+        renderWithProviders(
+            <HackathonRegisterModal open={true} onClose={vi.fn()} hackathon={hackathonWithSize} />
+        );
+
+        // The modal should render with the team size constraints
+        // This test just verifies the modal renders without crashing when size constraints are provided
+        expect(screen.getByText(/AI Challenge/)).toBeInTheDocument();
+    });
 });

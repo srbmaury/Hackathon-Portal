@@ -2,10 +2,37 @@ import React from "react";
 import { render, screen, fireEvent, within, waitFor } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import i18n from "../../../i18n/i18n";
+import { AuthContext } from "../../../context/AuthContext";
 import HackathonForm from "../HackathonForm";
 
-const renderWithI18n = (ui) =>
-    render(<I18nextProvider i18n={i18n}>{ui}</I18nextProvider>);
+// Mock API functions
+vi.mock("../../../api/hackathons", () => ({
+    formatHackathonDescription: vi.fn(),
+    suggestRound: vi.fn(),
+}));
+
+// Mock toast
+vi.mock("react-hot-toast", () => ({
+    default: {
+        success: vi.fn(),
+        error: vi.fn(),
+    },
+}));
+
+const renderWithI18n = (ui) => {
+    const mockAuthContext = {
+        token: "test-token",
+        user: { name: "Test User", role: "admin" }
+    };
+    
+    return render(
+        <I18nextProvider i18n={i18n}>
+            <AuthContext.Provider value={mockAuthContext}>
+                {ui}
+            </AuthContext.Provider>
+        </I18nextProvider>
+    );
+};
 
 describe("HackathonForm", () => {
     const mockOnSubmit = vi.fn();
@@ -116,5 +143,132 @@ describe("HackathonForm", () => {
         expect(callArgs.rounds).toBeDefined();
         expect(callArgs.rounds.length).toBeGreaterThan(0);
         expect(callArgs.rounds[0].name).toBe("Updated Round");
+    });
+
+    test("formats description with AI", async () => {
+        const formatHackathonDescription = (await import("../../../api/hackathons")).formatHackathonDescription;
+        formatHackathonDescription.mockResolvedValue({
+            formattedDescription: "# AI-Formatted Description\n\nThis is formatted by AI."
+        });
+
+        renderWithI18n(<HackathonForm onSubmit={mockOnSubmit} />);
+
+        // Fill title and description
+        fireEvent.change(screen.getByLabelText("Hackathon Title"), {
+            target: { value: "AI Hackathon" },
+        });
+        fireEvent.change(screen.getByLabelText("Hackathon Description"), {
+            target: { value: "Basic description" },
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Click AI format button
+        const formatButton = screen.getByRole("button", { name: "hackathon.format_with_ai" });
+        fireEvent.click(formatButton);
+
+        await waitFor(() => {
+            expect(formatHackathonDescription).toHaveBeenCalledWith(
+                "AI Hackathon",
+                "Basic description",
+                "test-token"
+            );
+        });
+    });
+
+    test("adds round with AI suggestion", async () => {
+        const suggestRound = (await import("../../../api/hackathons")).suggestRound;
+        suggestRound.mockResolvedValue({
+            round: {
+                name: "AI Suggested Round",
+                description: "AI generated description",
+                startDate: "2025-01-01",
+                endDate: "2025-01-15",
+                isActive: true,
+                hideScores: false
+            }
+        });
+
+        renderWithI18n(<HackathonForm onSubmit={mockOnSubmit} />);
+
+        // Fill title
+        fireEvent.change(screen.getByLabelText("Hackathon Title"), {
+            target: { value: "AI Hackathon" },
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Click AI suggest round button
+        const aiRoundButton = screen.getByRole("button", { name: "hackathon.add_round_with_ai" });
+        fireEvent.click(aiRoundButton);
+
+        await waitFor(() => {
+            expect(suggestRound).toHaveBeenCalled();
+        });
+
+        // Verify round was added
+        await waitFor(() => {
+            const roundContainers = screen.getAllByTestId("round-container");
+            expect(roundContainers.length).toBeGreaterThan(0);
+        });
+    });
+
+    test("removes a round", async () => {
+        renderWithI18n(<HackathonForm onSubmit={mockOnSubmit} />);
+
+        // Add a round
+        const addRoundButton = screen.getByRole("button", { name: "hackathon.add_round" });
+        fireEvent.click(addRoundButton);
+
+        await waitFor(() => {
+            expect(screen.getAllByTestId("round-container").length).toBe(1);
+        });
+
+        // Remove the round
+        const deleteButton = screen.getByTestId("DeleteIcon").closest("button");
+        fireEvent.click(deleteButton);
+
+        await waitFor(() => {
+            expect(screen.queryAllByTestId("round-container").length).toBe(0);
+        });
+    });
+
+    test("calls onCancel when cancel button is clicked", () => {
+        const mockOnCancel = vi.fn();
+        renderWithI18n(<HackathonForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
+
+        const cancelButton = screen.getByRole("button", { name: "common.cancel" });
+        fireEvent.click(cancelButton);
+
+        expect(mockOnCancel).toHaveBeenCalled();
+    });
+
+    test("toggles isActive checkbox", async () => {
+        renderWithI18n(<HackathonForm onSubmit={mockOnSubmit} />);
+
+        // Fill required fields
+        fireEvent.change(screen.getByLabelText("Hackathon Title"), {
+            target: { value: "Test" },
+        });
+        fireEvent.change(screen.getByLabelText("Hackathon Description"), {
+            target: { value: "Test desc" },
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Toggle active checkbox
+        const activeCheckbox = screen.getByRole("checkbox");
+        fireEvent.click(activeCheckbox);
+
+        // Submit
+        const submitButton = screen.getByRole("button", { name: "hackathon.create" });
+        fireEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(mockOnSubmit).toHaveBeenCalled();
+        });
+
+        const callArgs = mockOnSubmit.mock.calls[0][0];
+        expect(callArgs.isActive).toBe(true);
     });
 });
