@@ -605,6 +605,7 @@ describe("Socket.IO Server", () => {
                     message: "Test Message",
                     createdBy: creatorUser._id,
                     organization: org._id,
+                    hackathon: hackathon._id, // Add required field
                 }).then((announcement) => ({ creatorUser, announcement }));
             }).then(({ creatorUser, announcement }) => {
                 const token = jwt.sign({ id: creatorUser._id }, JWT_SECRET);
