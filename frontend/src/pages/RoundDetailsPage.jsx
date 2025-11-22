@@ -1,46 +1,71 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+
 import {
-    Container,
+    Alert,
     Box,
-    Typography,
-    Tabs,
-    Tab,
     Button,
     Card,
     CardContent,
     Chip,
-    Alert,
+    CircularProgress,
+    Container,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    Divider,
+    Paper,
     Stack,
-    TextField,
     Table,
+    TableBody,
+    TableCell,
     TableHead,
     TableRow,
-    TableCell,
-    TableBody,
-    CircularProgress,
-    Paper,
-    Divider,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
+    Tab,
+    Tabs,
+    TextField,
+    Typography,
 } from "@mui/material";
+
 import {
     ArrowBack as ArrowBackIcon,
-    Timer as TimerIcon,
-    CalendarToday as CalendarIcon,
-    AutoAwesome as AutoAwesomeIcon,
     Assessment as AssessmentIcon,
+    AutoAwesome as AutoAwesomeIcon,
+    CalendarToday as CalendarIcon,
     CompareArrows as CompareArrowsIcon,
+    Timer as TimerIcon,
 } from "@mui/icons-material";
+
 import { useTranslation } from "react-i18next";
-import DashboardLayout from "../components/dashboard/DashboardLayout";
+
 import { useAuth } from "../context/AuthContext";
-import { getHackathonById, getMyHackathonRole } from "../api/hackathons";
+
+import {
+    getHackathonById,
+    getMyHackathonRole,
+} from "../api/hackathons";
+
 import { getMyTeam } from "../api/registrations";
-import { submitForRound, getMySubmission, getAllSubmissions, getStandings, updateSubmission, evaluateSubmission, generateSubmissionFeedback, compareSubmissions } from "../api/submissions";
-import { getAtRiskTeams, sendReminder, analyzeTeamRisk } from "../api/reminders";
+
+import {
+    compareSubmissions,
+    evaluateSubmission,
+    generateSubmissionFeedback,
+    getAllSubmissions,
+    getMySubmission,
+    getStandings,
+    submitForRound,
+    updateSubmission,
+} from "../api/submissions";
+
+import {
+    analyzeTeamRisk,
+    getAtRiskTeams,
+    sendReminder,
+} from "../api/reminders";
+
+import DashboardLayout from "../components/dashboard/DashboardLayout";
 import InfoModal from "../components/common/InfoModal";
 import ScoreFeedbackDialog from "../components/common/ScoreFeedbackDialog";
 

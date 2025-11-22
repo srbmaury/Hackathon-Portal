@@ -15,6 +15,11 @@ vi.mock("../../components/auth/GoogleLoginButton", () => ({
   default: () => <button data-testid="google-login-btn">Google Login</button>,
 }));
 
+// Mock TestLoginPanel
+vi.mock("../../components/auth/TestLoginPanel", () => ({
+  default: () => <div data-testid="test-login-panel">Test Login Panel</div>,
+}));
+
 describe("LoginPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();

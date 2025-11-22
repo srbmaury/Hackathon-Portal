@@ -1,34 +1,40 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
+
 import {
-    Container,
-    Typography,
+    Alert,
+    Avatar,
+    Box,
+    Button,
     Card,
     CardContent,
-    TextField,
-    Button,
-    Stack,
-    Box,
-    Avatar,
-    Divider,
-    CircularProgress,
-    Alert,
     Chip,
+    CircularProgress,
+    Container,
+    Divider,
+    Stack,
+    TextField,
+    Typography,
 } from "@mui/material";
+
 import {
-    Person as PersonIcon,
-    Email as EmailIcon,
     Business as BusinessIcon,
-    Work as WorkIcon,
-    Edit as EditIcon,
-    Save as SaveIcon,
     Cancel as CancelIcon,
+    Edit as EditIcon,
+    Email as EmailIcon,
+    Person as PersonIcon,
+    Save as SaveIcon,
+    Work as WorkIcon,
 } from "@mui/icons-material";
+
 import DashboardLayout from "../components/dashboard/DashboardLayout";
+
 import { AuthContext } from "../context/AuthContext";
+import { getMyProfile, updateMyProfile } from "../api/users";
+
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n/i18n";
+
 import toast from "react-hot-toast";
-import { getMyProfile, updateMyProfile } from "../api/users";
 
 const ProfilePage = () => {
     const { t } = useTranslation();
@@ -88,7 +94,7 @@ const ProfilePage = () => {
             const updatedUser = await updateMyProfile(formData, token);
             setProfile(updatedUser);
             setEditing(false);
-            
+
             // Update auth context with new user data
             const updatedAuthUser = {
                 ...authUser,
@@ -96,7 +102,7 @@ const ProfilePage = () => {
                 expertise: updatedUser.expertise,
             };
             login(updatedAuthUser, token);
-            
+
             toast.success(t("profile.update_success") || "Profile updated successfully");
         } catch (err) {
             console.error("Error updating profile:", err);
@@ -295,13 +301,13 @@ const ProfilePage = () => {
                                     <Typography variant="body2" color="text.secondary">
                                         {profile.createdAt
                                             ? new Date(profile.createdAt).toLocaleDateString(
-                                                  i18n.language === "hi" ? "hi-IN" : i18n.language === "te" ? "te-IN" : "en-US",
-                                                  {
-                                                      year: "numeric",
-                                                      month: "long",
-                                                      day: "numeric",
-                                                  }
-                                              )
+                                                i18n.language === "hi" ? "hi-IN" : i18n.language === "te" ? "te-IN" : "en-US",
+                                                {
+                                                    year: "numeric",
+                                                    month: "long",
+                                                    day: "numeric",
+                                                }
+                                            )
                                             : t("common.none") || "-"}
                                     </Typography>
                                 </Box>

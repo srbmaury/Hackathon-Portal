@@ -1,4 +1,5 @@
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
+
 import {
     Box,
     Drawer,
@@ -12,21 +13,23 @@ import {
     IconButton,
     Divider,
 } from "@mui/material";
+
 import {
-    Home as HomeIcon,
     Lightbulb as LightbulbIcon,
+    LightbulbOutline as LightbulbOutlineIcon,
     Group as GroupIcon,
     EventNote as EventNoteIcon,
+    Settings as SettingsIcon,
     Logout as LogoutIcon,
     Menu as MenuIcon,
-    Settings as SettingsIcon,
-    LightbulbOutline as LightbulbOutlineIcon,
-    Person,
     AccountCircle as AccountCircleIcon,
+    Person,
 } from "@mui/icons-material";
-import { AuthContext } from "../../context/AuthContext";
+
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+
+import { AuthContext } from "../../context/AuthContext";
 import NotificationBell from "../common/NotificationBell";
 
 const drawerWidth = 240;
@@ -35,7 +38,7 @@ const DashboardLayout = ({ children }) => {
     const { user, logout } = useContext(AuthContext);
     const navigate = useNavigate();
     const { t } = useTranslation();
-    const [mobileOpen, setMobileOpen] = React.useState(false);
+    const [mobileOpen, setMobileOpen] = useState(false);
 
     const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 

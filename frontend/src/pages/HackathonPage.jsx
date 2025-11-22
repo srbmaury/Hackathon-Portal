@@ -1,24 +1,18 @@
 import React, { useEffect, useState, useContext, useRef } from "react";
-import {
-    Box,
-    Typography,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Button,
-    Container,
-    Fab,
-    Collapse,
-    Alert,
-    IconButton,
-} from "@mui/material";
+
+import { Box, Typography, Button, Container, Fab, Collapse, Alert, IconButton } from "@mui/material";
 import { Add as AddIcon, Close as CloseIcon } from "@mui/icons-material";
-import { AuthContext } from "../context/AuthContext";
-import { useTranslation } from "react-i18next";
+
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
+
+import { AuthContext } from "../context/AuthContext";
+
+import DashboardLayout from "../components/dashboard/DashboardLayout";
 import HackathonForm from "../components/hackathons/HackathonForm";
 import HackathonList from "../components/hackathons/HackathonList";
+import ConfirmDialog from "../components/common/ConfirmDialog";
+
 import {
     getAllHackathons,
     createHackathon,
@@ -26,21 +20,19 @@ import {
     deleteHackathon,
     getHackathonById,
 } from "../api/hackathons";
-import DashboardLayout from "../components/dashboard/DashboardLayout";
-import HackathonRegisterModal from "../components/teams/HackathonRegisterModal";
-import ConfirmDialog from "../components/common/ConfirmDialog";
 
 const HackathonPage = () => {
     const { t } = useTranslation();
     const { token, user } = useContext(AuthContext);
+
     const [hackathons, setHackathons] = useState([]);
     const [editingHackathon, setEditingHackathon] = useState(null);
     const [showForm, setShowForm] = useState(false);
-    const formRef = useRef(null);
 
-    // For Delete Confirmation Dialog
     const [selectedHackathon, setSelectedHackathon] = useState(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+    const formRef = useRef(null);
 
     const fetchHackathons = async () => {
         try {
@@ -60,38 +52,30 @@ const HackathonPage = () => {
     useEffect(() => {
         const handleHackathonUpdate = (event) => {
             const { eventType, hackathon } = event.detail;
-            console.log("Hackathon update received:", eventType, hackathon);
-            
             if (eventType === "created") {
-                // Add new hackathon to the list
                 setHackathons((prev) => [hackathon, ...prev]);
                 toast.success(`New hackathon: ${hackathon.title}`);
-            } else if (eventType === "updated") {
-                // Update existing hackathon in the list
+            }
+            if (eventType === "updated") {
                 setHackathons((prev) =>
                     prev.map((h) => (h._id === hackathon._id ? hackathon : h))
                 );
-                // If we're editing this hackathon, update it
                 if (editingHackathon && editingHackathon._id === hackathon._id) {
                     setEditingHackathon(hackathon);
                 }
-            } else if (eventType === "deleted") {
-                // Remove hackathon from the list
+            }
+            if (eventType === "deleted") {
                 setHackathons((prev) => prev.filter((h) => h._id !== hackathon._id));
-                // If we're editing this hackathon, close the form
                 if (editingHackathon && editingHackathon._id === hackathon._id) {
                     setEditingHackathon(null);
                     setShowForm(false);
                 }
             }
         };
-
-        window.addEventListener("hackathon_updated", handleHackathonUpdate);
-
-        return () => {
-            window.removeEventListener("hackathon_updated", handleHackathonUpdate);
-        };
+        window.addEventListener("hackathon-update", handleHackathonUpdate);
+        return () => window.removeEventListener("hackathon-update", handleHackathonUpdate);
     }, [editingHackathon]);
+
 
     const handleCreate = async (data) => {
         try {
@@ -178,10 +162,11 @@ const HackathonPage = () => {
     return (
         <DashboardLayout>
             <Container maxWidth="xl">
+                {/* Header Section */}
                 <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <Typography variant="h4" fontWeight={600} color="primary">
-                {t("hackathon.hackathons")}
-            </Typography>
+                        {t("hackathon.hackathons")}
+                    </Typography>
                     {canCreateHackathon && !showForm && (
                         <Button
                             variant="contained"
@@ -217,23 +202,23 @@ const HackathonPage = () => {
                                     ? t("hackathon.editing_mode") || `Editing: ${editingHackathon.title}`
                                     : t("hackathon.creating_mode") || "Creating a new hackathon"}
                             </Alert>
-                <HackathonForm
-                    initialData={editingHackathon}
-                    onSubmit={editingHackathon ? handleUpdate : handleCreate}
+                            <HackathonForm
+                                initialData={editingHackathon}
+                                onSubmit={editingHackathon ? handleUpdate : handleCreate}
                                 onCancel={handleCancelEdit}
-                />
+                            />
                         </Collapse>
                     </Box>
-            )}
+                )}
 
                 {/* Hackathons List */}
                 <Box>
-                <HackathonList
-                    hackathons={hackathons}
-                    onEdit={handleEdit}
-                    onDelete={handleDeleteClick}
-                />
-            </Box>
+                    <HackathonList
+                        hackathons={hackathons}
+                        onEdit={handleEdit}
+                        onDelete={handleDeleteClick}
+                    />
+                </Box>
 
                 {/* Floating Action Button - Shows when form is hidden */}
                 {canCreateHackathon && !showForm && hackathons.length > 0 && (
@@ -251,18 +236,18 @@ const HackathonPage = () => {
                     </Fab>
                 )}
 
-            <ConfirmDialog
-                open={deleteDialogOpen}
-                title={t("hackathon.confirm_delete_title")}
-                message={t("hackathon.confirm_delete_message", {
-                    name: selectedHackathon?.title || "",
-                })}
-                confirmText={t("common.delete")}
-                cancelText={t("common.cancel")}
-                confirmColor="error"
-                onConfirm={handleConfirmDelete}
-                onCancel={handleCancelDelete}
-            />
+                <ConfirmDialog
+                    open={deleteDialogOpen}
+                    title={t("hackathon.confirm_delete_title")}
+                    message={t("hackathon.confirm_delete_message", {
+                        name: selectedHackathon?.title || "",
+                    })}
+                    confirmText={t("common.delete")}
+                    cancelText={t("common.cancel")}
+                    confirmColor="error"
+                    onConfirm={handleConfirmDelete}
+                    onCancel={handleCancelDelete}
+                />
             </Container>
         </DashboardLayout>
     );

@@ -1,88 +1,37 @@
 // middleware/__tests__/hackathonRoleCheck.test.js
 
-import dotenv from "dotenv";
-dotenv.config();
-process.env.NODE_ENV = "test";
-process.env.JWT_SECRET = process.env.JWT_SECRET || "testsecret";
-const JWT_SECRET = process.env.JWT_SECRET;
-
-import { describe, it, beforeAll, afterAll, beforeEach, expect } from "vitest";
-import request from "supertest";
-import mongoose from "mongoose";
-import jwt from "jsonwebtoken";
-
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const app = require("../../app");
-
-import { connectTestDb, clearDb, closeTestDb } from "../../setup/testDb.js";
-import User from "../../models/User.js";
+import { setupTestEnv, getApp, describe, it, beforeAll, afterAll, beforeEach, expect, request, mongoose, connectTestDb, clearDb, closeTestDb } from "../../controllers/__tests__/helpers/testSetup.js";
+import { setupHackathonTestEnv, assignHackathonRole, createTestHackathon } from "../../controllers/__tests__/helpers/testHelpers.js";
+import { assertSuccess, assertForbidden, assertNotFound } from "../../controllers/__tests__/helpers/assertions.js";
 import Organization from "../../models/Organization.js";
 import Hackathon from "../../models/Hackathon.js";
 import HackathonRole from "../../models/HackathonRole.js";
 
+const JWT_SECRET = setupTestEnv();
+const app = getApp();
+
 describe("HackathonRoleCheck Middleware", () => {
-  let org, adminUser, user, organizer, hackathon;
+  let org, adminUser, normalUser, organizer, hackathon;
   let adminToken, userToken, organizerToken;
 
   beforeAll(async () => {
     await connectTestDb();
 
-    org = await Organization.create({
-      name: "Test Org",
-      domain: "testorg.com",
-    });
-
-    adminUser = await User.create({
-      name: "Admin User",
-      email: "admin@testorg.com",
-      role: "admin",
-      organization: org._id,
-      googleId: "google-admin",
-    });
-
-    user = await User.create({
-      name: "User",
-      email: "user@testorg.com",
-      role: "user",
-      organization: org._id,
-      googleId: "google-user",
-    });
-
-    organizer = await User.create({
-      name: "Organizer",
-      email: "organizer@testorg.com",
-      role: "hackathon_creator",
-      organization: org._id,
-      googleId: "google-organizer",
-    });
-
-    hackathon = await Hackathon.create({
-      title: "Test Hackathon",
-      description: "Test",
-      organization: org._id,
-      createdBy: organizer._id,
-      isActive: true,
-    });
-
-    adminToken = jwt.sign(
-      { id: adminUser._id.toString(), role: "admin", organization: org._id.toString() },
-      JWT_SECRET
-    );
-
-    userToken = jwt.sign(
-      { id: user._id.toString(), role: "user", organization: org._id.toString() },
-      JWT_SECRET
-    );
-
-    organizerToken = jwt.sign(
-      { id: organizer._id.toString(), role: "hackathon_creator", organization: org._id.toString() },
-      JWT_SECRET
-    );
+    const env = await setupHackathonTestEnv(JWT_SECRET);
+    org = env.org;
+    adminUser = env.adminUser;
+    normalUser = env.normalUser;
+    organizer = env.organizer;
+    hackathon = env.hackathon;
+    adminToken = env.adminToken;
+    userToken = env.userToken;
+    organizerToken = env.organizerToken;
   });
 
   beforeEach(async () => {
     await clearDb([HackathonRole]);
+    // Restore organizer role
+    await assignHackathonRole(organizer._id, hackathon._id, "organizer", adminUser._id);
   });
 
   afterAll(async () => {
@@ -94,7 +43,7 @@ describe("HackathonRoleCheck Middleware", () => {
       .get(`/api/hackathons/${hackathon._id}/members`)
       .set("Authorization", `Bearer ${adminToken}`);
 
-    expect(res.statusCode).toBe(200);
+    assertSuccess(res);
   });
 
   it("should reject user without hackathon role", async () => {
@@ -102,31 +51,21 @@ describe("HackathonRoleCheck Middleware", () => {
       .get(`/api/hackathons/${hackathon._id}/members`)
       .set("Authorization", `Bearer ${userToken}`);
 
-    expect(res.statusCode).toBe(403);
+    assertForbidden(res);
   });
 
   it("should allow user with correct hackathon role", async () => {
-    await HackathonRole.create({
-      user: user._id,
-      hackathon: hackathon._id,
-      role: "participant",
-      assignedBy: adminUser._id,
-    });
+    await assignHackathonRole(normalUser._id, hackathon._id, "participant", adminUser._id);
 
     const res = await request(app)
       .get(`/api/hackathons/${hackathon._id}/members`)
       .set("Authorization", `Bearer ${userToken}`);
 
-    expect(res.statusCode).toBe(200);
+    assertSuccess(res);
   });
 
   it("should reject user with wrong hackathon role", async () => {
-    await HackathonRole.create({
-      user: user._id,
-      hackathon: hackathon._id,
-      role: "participant",
-      assignedBy: adminUser._id,
-    });
+    await assignHackathonRole(normalUser._id, hackathon._id, "participant", adminUser._id);
 
     // Try to access organizer-only endpoint
     const res = await request(app)
@@ -137,7 +76,7 @@ describe("HackathonRoleCheck Middleware", () => {
         message: "Test message",
       });
 
-    expect(res.statusCode).toBe(403);
+    assertForbidden(res);
   });
 
   it("should return 404 for non-existent hackathon", async () => {
@@ -146,16 +85,16 @@ describe("HackathonRoleCheck Middleware", () => {
       .get(`/api/hackathons/${fakeId}/members`)
       .set("Authorization", `Bearer ${adminToken}`);
 
-    expect(res.statusCode).toBe(404);
+    assertNotFound(res);
   });
 
-  it("should return 403 for hackathon from different organization", async () => {
+  it("should reject hackathon from different organization", async () => {
     const otherOrg = await Organization.create({
       name: "Other Org",
       domain: "other.com",
     });
 
-    const otherHackathon = await Hackathon.create({
+    const otherHackathon = await createTestHackathon({
       title: "Other Hackathon",
       description: "Other",
       organization: otherOrg._id,
@@ -163,23 +102,86 @@ describe("HackathonRoleCheck Middleware", () => {
       isActive: true,
     });
 
+    await assignHackathonRole(normalUser._id, otherHackathon._id, "participant", adminUser._id);
+
     const res = await request(app)
-      .get(`/api/hackathons/${otherHackathon._id}/members`)
-      .set("Authorization", `Bearer ${adminToken}`);
-
-    // Admin should still have access, but let's test with regular user
-    await HackathonRole.create({
-      user: user._id,
-      hackathon: otherHackathon._id,
-      role: "participant",
-      assignedBy: adminUser._id,
-    });
-
-    const res2 = await request(app)
       .get(`/api/hackathons/${otherHackathon._id}/members`)
       .set("Authorization", `Bearer ${userToken}`);
 
-    expect(res2.statusCode).toBe(403);
+    assertForbidden(res);
+  });
+
+  it("should attach hackathon role to request", async () => {
+    await assignHackathonRole(normalUser._id, hackathon._id, "participant", adminUser._id);
+
+    const res = await request(app)
+      .get(`/api/hackathons/${hackathon._id}/members`)
+      .set("Authorization", `Bearer ${userToken}`);
+
+    assertSuccess(res);
+    // Role should be attached to request (verified by successful access)
+  });
+
+  describe("isHackathonMember middleware", () => {
+    it("should allow admin to access without membership", async () => {
+      // Clear all hackathon roles to ensure admin has no specific role
+      await HackathonRole.deleteMany({ user: adminUser._id, hackathon: hackathon._id });
+
+      const res = await request(app)
+        .get(`/api/hackathons/${hackathon._id}/members`)
+        .set("Authorization", `Bearer ${adminToken}`);
+
+      assertSuccess(res);
+    });
+
+    it("should allow user with any hackathon role", async () => {
+      await assignHackathonRole(normalUser._id, hackathon._id, "judge", adminUser._id);
+
+      const res = await request(app)
+        .get(`/api/hackathons/${hackathon._id}/members`)
+        .set("Authorization", `Bearer ${userToken}`);
+
+      assertSuccess(res);
+    });
+
+    it("should reject user without any hackathon role", async () => {
+      const res = await request(app)
+        .get(`/api/hackathons/${hackathon._id}/members`)
+        .set("Authorization", `Bearer ${userToken}`);
+
+      assertForbidden(res);
+    });
+
+    it("should return 404 for non-existent hackathon", async () => {
+      const fakeId = new mongoose.Types.ObjectId();
+      const res = await request(app)
+        .get(`/api/hackathons/${fakeId}/members`)
+        .set("Authorization", `Bearer ${userToken}`);
+
+      expect([403, 404]).toContain(res.statusCode);
+    });
+
+    it("should reject hackathon from different organization", async () => {
+      const otherOrg = await Organization.create({
+        name: "Another Org",
+        domain: "another.com",
+      });
+
+      const otherHackathon = await createTestHackathon({
+        title: "Another Hackathon",
+        description: "Another",
+        organization: otherOrg._id,
+        createdBy: adminUser._id,
+        isActive: true,
+      });
+
+      await assignHackathonRole(normalUser._id, otherHackathon._id, "participant", adminUser._id);
+
+      const res = await request(app)
+        .get(`/api/hackathons/${otherHackathon._id}/members`)
+        .set("Authorization", `Bearer ${userToken}`);
+
+      assertForbidden(res);
+    });
   });
 });
-

@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useContext, useEffect, useState } from "react";
+
 import {
     Box,
     Paper,
@@ -14,21 +15,23 @@ import {
     TableRow,
     TableCell,
 } from "@mui/material";
+
 import { useTranslation } from "react-i18next";
-import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AuthContext } from "../../context/AuthContext";
+
 import toast from "react-hot-toast";
-import { getMyTeam, withdrawTeam } from "../../api/registrations";
 import dayjs from "dayjs";
+
+import { AuthContext } from "../../context/AuthContext";
+import { getMyTeam, withdrawTeam } from "../../api/registrations";
+
 import MarkdownViewer from "../common/MarkdownViewer";
-import RegisterTeamModal from "../teams/HackathonRegisterModal"; // 👈 Import modal
+import RegisterTeamModal from "../teams/HackathonRegisterModal";
 
 const HackathonItem = ({ hackathon, onEdit, onDelete }) => {
     const { t } = useTranslation();
-    const { user } = useContext(AuthContext);
+    const { token, user } = useContext(AuthContext);
     const navigate = useNavigate();
-    const token = localStorage.getItem("token");
     const theme = useTheme();
     const colorScheme = theme.palette.mode === "dark" ? "dark" : "light";
 
@@ -147,23 +150,27 @@ const HackathonItem = ({ hackathon, onEdit, onDelete }) => {
                                 </Button>
                             </>
                         )}
-                        {user.role === "participant" && (
+                        {user.role === "user" && (!hackathon.myRole || hackathon.myRole === "participant") && (
                             !isRegistered ? (
                                 <Button
-                                    variant="contained"
+                                    variant="outlined"
                                     size="small"
                                     sx={{ mt: 1 }}
                                     onClick={() => setOpenRegister(true)}
                                 >
                                     {t("hackathon.register")}
                                 </Button>
-                                    ) : (
+                            ) : (
                                 <>
                                     <Button
                                         variant="outlined"
                                         size="small"
                                         sx={{ mt: 1 }}
-                                        onClick={() => setOpenRegister(true)}
+                                        onClick={async () => {
+                                            setOpenRegister(true);
+                                            const res = await getMyTeam(hackathon._id, token);
+                                            setMyTeam(res.team);
+                                        }}
                                     >
                                         {t("hackathon.edit") || "Edit"}
                                     </Button>
@@ -194,25 +201,14 @@ const HackathonItem = ({ hackathon, onEdit, onDelete }) => {
                         )}
                     </Stack>
                 </CardContent>
-            </Card>
+            </Card >
 
             {/* Registration Modal */}
-            <RegisterTeamModal
+            < RegisterTeamModal
                 open={openRegister}
-                onClose={() => setOpenRegister(false)}
+                onClose={() => { setOpenRegister(false); }}
                 hackathon={hackathon}
                 team={myTeam}
-                onRegistered={async () => {
-                    try {
-                        const res = await getMyTeam(hackathon._id, token);
-                        if (res?.team) {
-                            setIsRegistered(true);
-                            setMyTeam(res.team);
-                        }
-                    } catch (err) {
-                        // ignore
-                    }
-                }}
             />
         </>
     );

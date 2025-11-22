@@ -1,9 +1,15 @@
 import React, { useContext } from "react";
+
+// External libraries
 import { GoogleLogin } from "@react-oauth/google";
-import { googleLogin } from "../../api/auth"; // updated import
-import { AuthContext } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
+
+// App context
+import { AuthContext } from "../../context/AuthContext";
+
+// API
+import { googleLogin } from "../../api/auth";
 
 const GoogleLoginButton = () => {
     const { login } = useContext(AuthContext);

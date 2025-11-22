@@ -1,10 +1,9 @@
 import { useContext } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import LoginPage from "../pages/LoginPage";
 import { AuthContext } from "../context/AuthContext";
+import LoginPage from "../pages/LoginPage";
 import IdeaSubmissionPage from "../pages/IdeaSubmissionPage";
 import PublicIdeasPage from "../pages/PublicIdeasPage";
-import AnnouncementsPage from "../pages/AnnouncementsPage";
 import SettingsPage from "../pages/SettingsPage";
 import AdminMembersPage from "../pages/AdminMembersPage";
 import HackathonPage from "../pages/HackathonPage";
@@ -43,10 +42,6 @@ const AppRoutes = () => {
                     element={
                         user ? <RoundDetailsPage /> : <Navigate to="/" />
                     }
-                />
-                <Route
-                    path="/announcements"
-                    element={user ? <AnnouncementsPage /> : <Navigate to="/" />}
                 />
                 <Route
                     path="/ideas"

@@ -54,7 +54,8 @@
         "format_with_ai": "✨ Format with AI",
         "formatting": "Formatting...",
         "format_success": "Announcement formatted successfully!",
-        "format_failed": "Failed to format announcement"
+        "format_failed": "Failed to format announcement",
+        "showing_results": "Showing {{start}}-{{end}} of {{total}} announcements"
     },
     "idea": {
         "all_fields_required": "All fields are required",

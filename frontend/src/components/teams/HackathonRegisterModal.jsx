@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
+
 import {
     Dialog,
     DialogTitle,
@@ -15,18 +16,26 @@ import {
     Typography,
     Box,
 } from "@mui/material";
+
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
+
 import { AuthContext } from "../../context/AuthContext";
-import { registerForHackathon, updateTeam } from "../../api/registrations";
+
+import {
+    registerForHackathon,
+    updateTeam,
+    getHackathonTeams,
+} from "../../api/registrations";
 import { getPublicIdeas, getUserIdeas } from "../../api/ideas";
 import { getUsers } from "../../api/users";
+import { getHackathonMembers } from "../../api/hackathons";
+
 import MemberSearchPicker from "./MemberSearchPicker";
 
-const HackathonRegisterModal = ({ open, onClose, hackathon, onRegistered, team }) => {
+const HackathonRegisterModal = ({ open, onClose, hackathon, team }) => {
     const { t } = useTranslation();
-    const { token } = useContext(AuthContext);
-    const { user } = useContext(AuthContext);
+    const { token, user } = useContext(AuthContext);
 
     const [formData, setFormData] = useState({
         name: "",
@@ -43,32 +52,102 @@ const HackathonRegisterModal = ({ open, onClose, hackathon, onRegistered, team }
 
         const fetchData = async () => {
             try {
+                // Extract hackathon ID
+                let hackathonId = "";
+                if (hackathon) {
+                    if (typeof hackathon === "string") {
+                        hackathonId = hackathon;
+                    } else if (hackathon._id) {
+                        hackathonId = hackathon._id;
+                    } else if (hackathon.id) {
+                        hackathonId = hackathon.id;
+                    }
+                }
+
                 // When editing, fetch user ideas to include the team's current idea
                 // When creating, use public ideas
-                const ideasPromise = team ? getUserIdeas(token) : getPublicIdeas(token);
-                
-                const [ideasRes, usersRes] = await Promise.all([
-                    ideasPromise,
-                    getUsers(token),
-                ]);
+                const ideasPromise = team
+                    ? getUserIdeas(token)
+                    : getPublicIdeas(token);
+
+                // Fetch all data in parallel
+                const [ideasRes, usersRes, teamsRes, membersRes] =
+                    await Promise.all([
+                        ideasPromise,
+                        getUsers(token),
+                        hackathonId
+                            ? getHackathonTeams(hackathonId, token).catch(
+                                () => ({ teams: [] })
+                            )
+                            : Promise.resolve({ teams: [] }),
+                        hackathonId
+                            ? getHackathonMembers(hackathonId, token).catch(
+                                () => ({ members: [], membersByRole: {} })
+                            )
+                            : Promise.resolve({
+                                members: [],
+                                membersByRole: {},
+                            }),
+                    ]);
 
                 // Extract ideas array from response
                 const ideasArray = ideasRes?.ideas || ideasRes || [];
-                console.log("Fetched ideas:", ideasArray);
                 setIdeas(ideasArray);
-                
-                const allUsers = usersRes?.groupedUsers ? Object.values(usersRes.groupedUsers).flat() : (usersRes?.users || usersRes || []);
-                // Filter to only users with role "user" for team member selection
-                const selectableUsers = allUsers.filter((u) => u.role === "user");
+
+                const allUsers = usersRes?.groupedUsers
+                    ? Object.values(usersRes.groupedUsers).flat()
+                    : usersRes?.users || usersRes || [];
+
+                // Filter out users who already have a role in this hackathon
+                const hackathonRoleUserIds = new Set((membersRes.members || []).map(m => m.user?._id || m.user));
+                let selectableUsers = allUsers.filter(u => !hackathonRoleUserIds.has(u._id));
+                // Always include current team members in selectableUsers when editing
+                if (team && Array.isArray(team.members)) {
+                    team.members.forEach(m => {
+                        const memberId = typeof m === "object" ? m._id : m;
+                        if (memberId && !selectableUsers.some(u => u._id === memberId)) {
+                            let memberObj = typeof m === "object" ? m : null;
+                            selectableUsers.push({
+                                _id: memberId,
+                                name: memberObj?.name || "(Current Member)",
+                                email: memberObj?.email || "",
+                            });
+                        }
+                    });
+                    // Sort selectableUsers so selected members appear first
+                    const memberIds = team.members.map(m => typeof m === "object" ? m._id : m);
+                    selectableUsers.sort((a, b) => {
+                        const aSelected = memberIds.includes(a._id);
+                        const bSelected = memberIds.includes(b._id);
+                        if (aSelected && !bSelected) return -1;
+                        if (!aSelected && bSelected) return 1;
+                        return 0;
+                    });
+                }
                 setUsers(selectableUsers);
+                console.log(membersRes);
+
+                console.log(allUsers);
+
+                console.log("Fetched users:", selectableUsers);
 
                 // If editing and we have a team with an idea, ensure the idea is in the list
                 if (team && team.idea) {
-                    const currentIdeaId = typeof team.idea === "string" ? team.idea : (team.idea._id || team.idea.id);
-                    const ideaExists = ideasArray.some(idea => String(idea._id) === String(currentIdeaId));
+                    const currentIdeaId =
+                        typeof team.idea === "string"
+                            ? team.idea
+                            : team.idea._id || team.idea.id;
+                    const ideaExists = ideasArray.some(
+                        (idea) => String(idea._id) === String(currentIdeaId)
+                    );
                     if (!ideaExists && currentIdeaId) {
-                        console.warn("Team's current idea not found in fetched ideas list. Idea ID:", currentIdeaId);
+                        ideasArray.push({
+                            _id: currentIdeaId,
+                            title: team.idea.title || "(Current Idea)",
+                            description: team.idea.description || "",
+                        });
                     }
+                    setIdeas([...ideasArray]);
                 }
 
                 // ensure the current user is included in members by default and cannot be removed
@@ -76,12 +155,17 @@ const HackathonRegisterModal = ({ open, onClose, hackathon, onRegistered, team }
                     // Only add current user to members when creating new team, not when editing
                     setFormData((prev) => ({
                         ...prev,
-                        members: Array.from(new Set([...(prev.members || []), user._id])),
+                        members: Array.from(
+                            new Set([...(prev.members || []), user._id])
+                        ),
                     }));
                 }
             } catch (error) {
                 console.error("Error fetching data:", error);
-                toast.error(t("hackathon.details_fetch_failed") || "Failed to fetch data!");
+                toast.error(
+                    t("hackathon.details_fetch_failed") ||
+                    "Failed to fetch data!"
+                );
             }
         };
 
@@ -92,11 +176,14 @@ const HackathonRegisterModal = ({ open, onClose, hackathon, onRegistered, team }
     useEffect(() => {
         if (!open) return;
         if (team) {
-            console.log("Editing team - full team object:", JSON.stringify(team, null, 2));
-            
+            console.log(
+                "Editing team - full team object:",
+                JSON.stringify(team, null, 2)
+            );
+
             // Extract team name
             const teamName = team.name || "";
-            
+
             // Extract idea ID - handle both populated object and ID string
             let ideaId = "";
             if (team.idea) {
@@ -108,23 +195,25 @@ const HackathonRegisterModal = ({ open, onClose, hackathon, onRegistered, team }
                     ideaId = team.idea.id;
                 }
             }
-            
+
             // Extract member IDs - handle both populated objects and ID strings
-            const memberIds = (team.members || []).map((m) => {
-                if (typeof m === "string") {
+            const memberIds = (team.members || [])
+                .map((m) => {
+                    if (typeof m === "string") {
+                        return m;
+                    } else if (m && typeof m === "object") {
+                        return m._id || m.id || m;
+                    }
                     return m;
-                } else if (m && typeof m === "object") {
-                    return m._id || m.id || m;
-                }
-                return m;
-            }).filter(Boolean);
-            
+                })
+                .filter(Boolean);
+
             console.log("Extracted form data:", {
                 name: teamName,
                 idea: ideaId,
-                members: memberIds
+                members: memberIds,
             });
-            
+
             setFormData({
                 name: teamName,
                 idea: ideaId,
@@ -132,7 +221,11 @@ const HackathonRegisterModal = ({ open, onClose, hackathon, onRegistered, team }
             });
         } else {
             // reset when creating new
-            setFormData({ name: "", idea: "", members: user && user._id ? [user._id] : [] });
+            setFormData({
+                name: "",
+                idea: "",
+                members: user && user._id ? [user._id] : [],
+            });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, team]);
@@ -165,31 +258,33 @@ const HackathonRegisterModal = ({ open, onClose, hackathon, onRegistered, team }
         return size >= constraints.min && size <= constraints.max;
     };
 
-            const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         try {
             // Validate team size
             const constraints = getTeamSizeConstraints();
             const currentSize = getCurrentTeamSize();
-            
+
             if (currentSize < constraints.min) {
                 toast.error(
                     t("hackathon.team_size_too_small", {
                         min: constraints.min,
                         current: currentSize,
-                    }) || `Team must have at least ${constraints.min} member(s). Currently: ${currentSize}`
+                    }) ||
+                    `Team must have at least ${constraints.min} member(s). Currently: ${currentSize}`
                 );
                 setLoading(false);
                 return;
             }
-            
+
             if (currentSize > constraints.max) {
                 toast.error(
                     t("hackathon.team_size_too_large", {
                         max: constraints.max,
                         current: currentSize,
-                    }) || `Team cannot have more than ${constraints.max} member(s). Currently: ${currentSize}`
+                    }) ||
+                    `Team cannot have more than ${constraints.max} member(s). Currently: ${currentSize}`
                 );
                 setLoading(false);
                 return;
@@ -200,7 +295,7 @@ const HackathonRegisterModal = ({ open, onClose, hackathon, onRegistered, team }
                 ideaId: formData.idea,
                 memberIds: formData.members,
             };
-            
+
             // Extract hackathon ID - handle both populated object and ID string
             let hackathonId = "";
             if (hackathon) {
@@ -212,28 +307,41 @@ const HackathonRegisterModal = ({ open, onClose, hackathon, onRegistered, team }
                     hackathonId = hackathon.id;
                 }
             }
-            
+
             if (!hackathonId) {
-                toast.error(t("hackathon.register_failed") || "Invalid hackathon data");
+                toast.error(
+                    t("hackathon.register_failed") || "Invalid hackathon data"
+                );
                 setLoading(false);
                 return;
             }
-            
-                    if (team && team._id) {
-                        // Update existing team
-                console.log("Updating team:", team._id, "with payload:", payload);
+
+            if (team && team._id) {
+                // Update existing team
+                console.log(
+                    "Updating team:",
+                    team._id,
+                    "with payload:",
+                    payload
+                );
                 await updateTeam(hackathonId, team._id, payload, token);
-                        toast.success(t("hackathon.update_success") || "Updated successfully!");
-                    } else {
+                toast.success(
+                    t("hackathon.update_success") || "Updated successfully!"
+                );
+            } else {
                 console.log("Registering new team with payload:", payload);
                 await registerForHackathon(hackathonId, payload, token);
-                        toast.success(t("hackathon.register_success") || "Registered successfully!");
-                    }
-                    if (onRegistered) onRegistered();
-                    onClose();
+                toast.success(
+                    t("hackathon.register_success") ||
+                    "Registered successfully!"
+                );
+            }
+            onClose();
         } catch (error) {
             console.error("Registration/Update error:", error);
-            toast.error(t("hackathon.register_failed") || "Registration failed!");
+            toast.error(
+                t("hackathon.register_failed") || "Registration failed!"
+            );
         } finally {
             setLoading(false);
         }
@@ -249,7 +357,9 @@ const HackathonRegisterModal = ({ open, onClose, hackathon, onRegistered, team }
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
             <DialogTitle>
-                {team ? (t("hackathon.edit_team") || "Edit Team") : (t("hackathon.register_for") || "Register for Hackathon")} 
+                {team
+                    ? t("hackathon.edit_team") || "Edit Team"
+                    : t("hackathon.register_for") || "Register for Hackathon"}
                 {getHackathonTitle() && ` - ${getHackathonTitle()}`}
             </DialogTitle>
 
@@ -267,7 +377,9 @@ const HackathonRegisterModal = ({ open, onClose, hackathon, onRegistered, team }
 
                     {/* Idea Selection */}
                     <FormControl fullWidth required>
-                        <InputLabel>{t("hackathon.idea") || "Select Idea"}</InputLabel>
+                        <InputLabel>
+                            {t("hackathon.idea") || "Select Idea"}
+                        </InputLabel>
                         <Select
                             name="idea"
                             value={formData.idea}
@@ -289,47 +401,75 @@ const HackathonRegisterModal = ({ open, onClose, hackathon, onRegistered, team }
                         const isValid = isTeamSizeValid();
                         const isMaxReached = currentSize >= constraints.max;
                         return (
-                            <Box sx={{ 
-                                p: 2, 
-                                bgcolor: isMaxReached ? "warning.light" : (isValid ? "success.light" : "error.light"),
-                                borderRadius: 1,
-                                border: `1px solid ${isMaxReached ? "warning.main" : (isValid ? "success.main" : "error.main")}`
-                            }}>
-                                <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                            <Box
+                                sx={{
+                                    p: 2,
+                                    bgcolor: isMaxReached
+                                        ? "warning.light"
+                                        : isValid
+                                            ? "success.light"
+                                            : "error.light",
+                                    borderRadius: 1,
+                                    border: `1px solid ${isMaxReached
+                                        ? "warning.main"
+                                        : isValid
+                                            ? "success.main"
+                                            : "error.main"
+                                        }`,
+                                }}
+                            >
+                                <Typography
+                                    variant="subtitle2"
+                                    fontWeight={600}
+                                    gutterBottom
+                                >
                                     {t("hackathon.team_size_requirement", {
                                         min: constraints.min,
                                         max: constraints.max,
-                                    }) || `Team Size Requirement: ${constraints.min} - ${constraints.max} members`}
+                                    }) ||
+                                        `Team Size Requirement: ${constraints.min} - ${constraints.max} members`}
                                 </Typography>
-                                <Typography 
-                                    variant="body2" 
-                                    color={isValid ? "success.dark" : "error.dark"}
+                                <Typography
+                                    variant="body2"
+                                    color={
+                                        isValid ? "success.dark" : "error.dark"
+                                    }
                                     fontWeight={500}
                                 >
                                     {t("hackathon.current_team_size", {
                                         current: currentSize,
                                         min: constraints.min,
                                         max: constraints.max,
-                                    }) || `Current: ${currentSize} member(s) of ${constraints.max} maximum`}
+                                    }) ||
+                                        `Current: ${currentSize} member(s) of ${constraints.max} maximum`}
                                 </Typography>
                                 {isMaxReached && (
                                     <Alert severity="info" sx={{ mt: 1 }}>
                                         {t("hackathon.max_team_size_reached", {
                                             max: constraints.max,
-                                        }) || `Maximum team size (${constraints.max}) reached. You cannot add more members.`}
+                                        }) ||
+                                            `Maximum team size (${constraints.max}) reached. You cannot add more members.`}
                                     </Alert>
                                 )}
                                 {!isValid && !isMaxReached && (
                                     <Alert severity="warning" sx={{ mt: 1 }}>
                                         {currentSize < constraints.min
-                                            ? t("hackathon.team_size_too_small_alert", {
-                                                  min: constraints.min,
-                                                  current: currentSize,
-                                              }) || `Team must have at least ${constraints.min} member(s). Currently: ${currentSize}`
-                                            : t("hackathon.team_size_too_large_alert", {
-                                                  max: constraints.max,
-                                                  current: currentSize,
-                                              }) || `Team cannot have more than ${constraints.max} member(s). Currently: ${currentSize}`}
+                                            ? t(
+                                                "hackathon.team_size_too_small_alert",
+                                                {
+                                                    min: constraints.min,
+                                                    current: currentSize,
+                                                }
+                                            ) ||
+                                            `Team must have at least ${constraints.min} member(s). Currently: ${currentSize}`
+                                            : t(
+                                                "hackathon.team_size_too_large_alert",
+                                                {
+                                                    max: constraints.max,
+                                                    current: currentSize,
+                                                }
+                                            ) ||
+                                            `Team cannot have more than ${constraints.max} member(s). Currently: ${currentSize}`}
                                     </Alert>
                                 )}
                             </Box>
@@ -340,7 +480,9 @@ const HackathonRegisterModal = ({ open, onClose, hackathon, onRegistered, team }
                     <MemberSearchPicker
                         users={users}
                         selectedIds={formData.members}
-                        onChange={(ids) => setFormData((prev) => ({ ...prev, members: ids }))}
+                        onChange={(ids) =>
+                            setFormData((prev) => ({ ...prev, members: ids }))
+                        }
                         maxTeamSize={getTeamSizeConstraints().max}
                     />
                 </Stack>
@@ -353,11 +495,20 @@ const HackathonRegisterModal = ({ open, onClose, hackathon, onRegistered, team }
                 <Button
                     onClick={handleSubmit}
                     variant="contained"
-                    disabled={loading || !isTeamSizeValid() || !formData.name || !formData.idea}
+                    disabled={
+                        loading ||
+                        !isTeamSizeValid() ||
+                        !formData.name ||
+                        !formData.idea
+                    }
                 >
                     {loading
-                        ? (team ? t("common.updating") || "Updating..." : t("common.loading") || "Registering...")
-                        : (team ? t("hackathon.update") || "Update" : t("hackathon.register") || "Register")}
+                        ? team
+                            ? t("common.updating") || "Updating..."
+                            : t("common.loading") || "Registering..."
+                        : team
+                            ? t("hackathon.update") || "Update"
+                            : t("hackathon.register") || "Register"}
                 </Button>
             </DialogActions>
         </Dialog>

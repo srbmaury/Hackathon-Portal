@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+
 import {
     Container,
     Box,
@@ -19,17 +21,25 @@ import {
     Chip,
     Divider,
 } from "@mui/material";
+
 import {
-    Send as SendIcon,
-    Message as MessageIcon,
     ArrowBack as ArrowBackIcon,
     AutoAwesome as AutoAwesomeIcon,
+    Message as MessageIcon,
+    Send as SendIcon,
     Summarize as SummarizeIcon,
 } from "@mui/icons-material";
-import { useTranslation } from "react-i18next";
+
 import { useAuth } from "../context/AuthContext";
-import { getTeamMessages, sendTeamMessage, generateMeetingSummary } from "../api/messages";
+
+import {
+    getTeamMessages,
+    sendTeamMessage,
+    generateMeetingSummary,
+} from "../api/messages";
+
 import { getMyTeams } from "../api/registrations";
+
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import InfoModal from "../components/common/InfoModal";
 
@@ -70,7 +80,7 @@ const ChatPage = () => {
     useEffect(() => {
         const handleTeamMessage = (event) => {
             const { teamId: eventTeamId, eventType, message } = event.detail;
-            
+
             if (eventTeamId === teamId && eventType === "new_message") {
                 setMessages((prev) => [...prev, message]);
             }
@@ -96,7 +106,7 @@ const ChatPage = () => {
         } catch (error) {
             console.error("Error loading team name from my teams:", error);
         }
-        
+
         // If not found in my teams, get from messages response (includes teamName)
         // This works for mentors, organizers, and admins too
         try {
@@ -167,7 +177,7 @@ const ChatPage = () => {
         if (diffMins < 60) return `${diffMins} ${t("chat.minutes_ago")}`;
         if (diffHours < 24) return `${diffHours} ${t("chat.hours_ago")}`;
         if (diffDays < 7) return `${diffDays} ${t("chat.days_ago")}`;
-        
+
         return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     };
 
@@ -278,10 +288,10 @@ const ChatPage = () => {
                                             }}
                                         >
                                             {!myMessage && (
-                                                <Avatar sx={{ 
-                                                    width: 32, 
-                                                    height: 32, 
-                                                    bgcolor: aiMessage ? "secondary.main" : "primary.main" 
+                                                <Avatar sx={{
+                                                    width: 32,
+                                                    height: 32,
+                                                    bgcolor: aiMessage ? "secondary.main" : "primary.main"
                                                 }}>
                                                     {aiMessage ? "🤖" : (message.sender?.name?.charAt(0)?.toUpperCase() || "?")}
                                                 </Avatar>
@@ -289,10 +299,10 @@ const ChatPage = () => {
                                             <Box
                                                 sx={{
                                                     maxWidth: "70%",
-                                                    bgcolor: myMessage 
-                                                        ? "primary.main" 
-                                                        : aiMessage 
-                                                            ? "secondary.light" 
+                                                    bgcolor: myMessage
+                                                        ? "primary.main"
+                                                        : aiMessage
+                                                            ? "secondary.light"
                                                             : "background.paper",
                                                     color: myMessage ? "primary.contrastText" : "text.primary",
                                                     p: 1.5,
@@ -378,10 +388,10 @@ const ChatPage = () => {
                 />
 
                 {/* Summary Dialog */}
-                <Dialog 
-                    open={summaryDialog.open} 
-                    onClose={() => setSummaryDialog({ open: false, summary: null })} 
-                    maxWidth="md" 
+                <Dialog
+                    open={summaryDialog.open}
+                    onClose={() => setSummaryDialog({ open: false, summary: null })}
+                    maxWidth="md"
                     fullWidth
                 >
                     <DialogTitle>

@@ -54,7 +54,8 @@
         "format_with_ai": "✨ AI से फ़ॉर्मेट करें",
         "formatting": "फ़ॉर्मेट किया जा रहा है...",
         "format_success": "घोषणा सफलतापूर्वक फ़ॉर्मेट हुई!",
-        "format_failed": "घोषणा फ़ॉर्मेट करने में असफल"
+        "format_failed": "घोषणा फ़ॉर्मेट करने में असफल",
+        "showing_results": "{{start}}-{{end}} में {{total}} घोषणाएँ दिखाई दे रही हैं"
     },
     "idea": {
         "all_fields_required": "सभी फ़ील्ड आवश्यक हैं",

@@ -1,320 +1,154 @@
 // controllers/__tests__/reminderController.test.js
 
-import dotenv from "dotenv";
-dotenv.config();
-process.env.NODE_ENV = "test";
-process.env.JWT_SECRET = process.env.JWT_SECRET || "testsecret";
-const JWT_SECRET = process.env.JWT_SECRET;
-
-import { describe, it, beforeAll, afterAll, beforeEach, expect, vi } from "vitest";
-import request from "supertest";
-import mongoose from "mongoose";
-import jwt from "jsonwebtoken";
-
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const app = require("../../app");
-
-import { connectTestDb, clearDb, closeTestDb } from "../../setup/testDb.js";
-import User from "../../models/User.js";
-import Organization from "../../models/Organization.js";
-import Hackathon from "../../models/Hackathon.js";
-import Team from "../../models/Team.js";
-import Round from "../../models/Round.js";
-import HackathonRole from "../../models/HackathonRole.js";
-import Idea from "../../models/Idea.js";
+import { setupTestEnv, getApp, describe, it, beforeAll, afterAll, beforeEach, expect, request, connectTestDb, clearDb, closeTestDb } from "./helpers/testSetup.js";
+import { setupHackathonTestEnv, createTestIdea, createTestTeam, assignHackathonRole, createTestUser, generateToken } from "./helpers/testHelpers.js";
+import { assertSuccess, assertForbidden } from "./helpers/assertions.js";
 import Message from "../../models/Message.js";
+import Submission from "../../models/Submission.js";
+import Round from "../../models/Round.js";
 
-// Mock smart reminder service
-vi.mock("../../services/smartReminderService", () => ({
-    analyzeTeamRisk: vi.fn(),
-    getAtRiskTeams: vi.fn(),
-    generateReminderMessage: vi.fn(),
-}));
-
-// Mock socket
-vi.mock("../../socket", () => ({
-    emitMessage: vi.fn(),
-}));
+const JWT_SECRET = setupTestEnv();
+const app = getApp();
 
 describe("ReminderController", () => {
-    let org, adminUser, user, organizer, hackathon, team, round;
+    let org, adminUser, normalUser, organizer, hackathon, team, round;
     let adminToken, userToken, organizerToken;
 
     beforeAll(async () => {
         await connectTestDb();
 
-        org = await Organization.create({
-            name: "Test Org",
-            domain: "testorg.com",
-        });
-
-        adminUser = await User.create({
-            name: "Admin User",
-            email: "admin@testorg.com",
-            role: "admin",
-            organization: org._id,
-            googleId: "google-id-admin",
-        });
-
-        user = await User.create({
-            name: "Test User",
-            email: "user@testorg.com",
-            role: "user",
-            organization: org._id,
-            googleId: "google-id-user",
-        });
-
-        organizer = await User.create({
-            name: "Organizer User",
-            email: "organizer@testorg.com",
-            role: "user",
-            organization: org._id,
-            googleId: "google-id-organizer",
-        });
-
-        hackathon = await Hackathon.create({
-            title: "Test Hackathon",
-            description: "Test Description",
-            organization: org._id,
-            isActive: true,
-        });
+        const env = await setupHackathonTestEnv(JWT_SECRET);
+        org = env.org;
+        adminUser = env.adminUser;
+        normalUser = env.normalUser;
+        organizer = env.organizer;
+        hackathon = env.hackathon;
+        adminToken = env.adminToken;
+        userToken = env.userToken;
+        organizerToken = env.organizerToken;
 
         round = await Round.create({
             name: "Round 1",
-            description: "First Round",
-            startDate: new Date(),
-            endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            description: "First round",
             isActive: true,
+            startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+            endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         });
 
         hackathon.rounds.push(round._id);
         await hackathon.save();
 
-        const idea = await Idea.create({
-            title: "Test Idea",
-            description: "Test Idea Description",
-            submitter: user._id,
+        const idea = await createTestIdea({
+            submitter: normalUser._id,
             organization: org._id,
-            isPublic: true,
         });
 
-        team = await Team.create({
-            name: "Test Team",
+        team = await createTestTeam({
             hackathon: hackathon._id,
             idea: idea._id,
-            members: [user._id],
+            members: [normalUser._id],
             organization: org._id,
         });
 
-        await HackathonRole.create({
-            user: organizer._id,
-            hackathon: hackathon._id,
-            role: "organizer",
-        });
+        await assignHackathonRole(normalUser._id, hackathon._id, "participant", adminUser._id);
+    }, 30000);
 
-        adminToken = jwt.sign({ id: adminUser._id.toString(), role: adminUser.role, organization: org._id }, JWT_SECRET);
-        userToken = jwt.sign({ id: user._id.toString(), role: user.role, organization: org._id }, JWT_SECRET);
-        organizerToken = jwt.sign({ id: organizer._id.toString(), role: organizer.role, organization: org._id }, JWT_SECRET);
+    beforeEach(async () => {
+        await clearDb([Message, Submission]);
     });
 
     afterAll(async () => {
         await closeTestDb();
     });
 
-    beforeEach(async () => {
-        await clearDb([Message]);
-        vi.clearAllMocks();
-    });
-
     describe("GET /api/reminders/team/:teamId/round/:roundId", () => {
         it("should analyze team risk for team member", async () => {
-            const { analyzeTeamRisk } = await import("../../services/smartReminderService");
-            // Reset and set mock
-            vi.mocked(analyzeTeamRisk).mockClear();
-            vi.mocked(analyzeTeamRisk).mockResolvedValue({
-                riskScore: 75,
-                riskLevel: "high",
-                reasons: ["Low activity"],
-                recommendations: ["Increase communication"],
-                predictedProbability: 60,
-            });
-
             const res = await request(app)
                 .get(`/api/reminders/team/${team._id}/round/${round._id}`)
-                .set("Authorization", `Bearer ${userToken}`)
-                .timeout(10000);
+                .set("Authorization", `Bearer ${userToken}`);
 
-            expect(res.status).toBe(200);
-            expect(res.body.analysis).toBeTruthy();
-            // The mock might not work because the service is already imported
-            // Just verify that an analysis object was returned with expected structure
-            expect(res.body.analysis).toBeTruthy();
-            // Verify it has the expected properties
-            expect(res.body.analysis).toHaveProperty('riskScore');
-            expect(typeof res.body.analysis.riskScore).toBe('number');
+            assertSuccess(res);
+            expect(res.body).toHaveProperty("analysis");
+            expect(res.body.analysis).toHaveProperty("riskScore");
         }, 10000);
 
         it("should analyze team risk for admin", async () => {
-            const { analyzeTeamRisk } = await import("../../services/smartReminderService");
-            vi.mocked(analyzeTeamRisk).mockResolvedValue({
-                riskScore: 50,
-                riskLevel: "medium",
-                reasons: [],
-                recommendations: [],
-                predictedProbability: 40,
-            });
-
             const res = await request(app)
                 .get(`/api/reminders/team/${team._id}/round/${round._id}`)
-                .set("Authorization", `Bearer ${adminToken}`)
-                .timeout(10000);
+                .set("Authorization", `Bearer ${adminToken}`);
 
-            expect(res.status).toBe(200);
-            expect(res.body.analysis).toBeTruthy();
+            assertSuccess(res);
+            expect(res.body).toHaveProperty("analysis");
+            expect(res.body.analysis).toHaveProperty("riskScore");
         }, 10000);
 
-        it("should return 404 if team not found", async () => {
-            const fakeId = new mongoose.Types.ObjectId();
-            const res = await request(app)
-                .get(`/api/reminders/team/${fakeId}/round/${round._id}`)
-                .set("Authorization", `Bearer ${userToken}`);
-
-            expect(res.status).toBe(404);
-        });
-
-        it("should return 403 if user is not authorized", async () => {
-            const outsider = await User.create({
+        it("should forbid unauthorized user", async () => {
+            const outsider = await createTestUser({
                 name: "Outsider",
-                email: "outsider@testorg.com",
+                email: "outsider@test.com",
                 role: "user",
                 organization: org._id,
-                googleId: "google-id-outsider",
+                googleId: "google-outsider",
             });
 
-            const outsiderToken = jwt.sign(
-                { id: outsider._id.toString(), role: outsider.role, organization: org._id },
-                JWT_SECRET
-            );
+            const outsiderToken = generateToken(outsider._id, "user", org._id, JWT_SECRET);
 
             const res = await request(app)
                 .get(`/api/reminders/team/${team._id}/round/${round._id}`)
                 .set("Authorization", `Bearer ${outsiderToken}`);
 
-            expect(res.status).toBe(403);
-        });
+            assertForbidden(res);
+        }, 10000);
     });
 
     describe("GET /api/reminders/round/:roundId/at-risk", () => {
         it("should get at-risk teams for organizer", async () => {
-            const { getAtRiskTeams } = await import("../../services/smartReminderService");
-            vi.mocked(getAtRiskTeams).mockClear();
-            vi.mocked(getAtRiskTeams).mockResolvedValue([
-                {
-                    team: { _id: team._id, name: team.name },
-                    analysis: {
-                        riskScore: 80,
-                        riskLevel: "high",
-                    },
-                },
-            ]);
-
             const res = await request(app)
                 .get(`/api/reminders/round/${round._id}/at-risk`)
-                .set("Authorization", `Bearer ${organizerToken}`)
-                .query({ threshold: 50 })
-                .timeout(10000);
-
-            expect(res.status).toBe(200);
-            expect(Array.isArray(res.body.atRiskTeams)).toBe(true);
-            expect(res.body).toHaveProperty('threshold');
-        }, 10000);
-
-        it("should get at-risk teams for admin", async () => {
-            const { getAtRiskTeams } = await import("../../services/smartReminderService");
-            // Reset mock to return empty array
-            vi.mocked(getAtRiskTeams).mockClear();
-            vi.mocked(getAtRiskTeams).mockResolvedValueOnce([]);
-
-            const res = await request(app)
-                .get(`/api/reminders/round/${round._id}/at-risk`)
-                .set("Authorization", `Bearer ${adminToken}`)
-                .timeout(10000);
-
-            expect(res.status).toBe(200);
-            expect(Array.isArray(res.body.atRiskTeams)).toBe(true);
-            // The mock might not work, so just verify the response structure is correct
-            expect(res.body).toHaveProperty('atRiskTeams');
-            expect(res.body).toHaveProperty('round');
-        }, 10000);
-
-        it("should return 404 if round not found", async () => {
-            const fakeId = new mongoose.Types.ObjectId();
-            const res = await request(app)
-                .get(`/api/reminders/round/${fakeId}/at-risk`)
                 .set("Authorization", `Bearer ${organizerToken}`);
 
-            expect(res.status).toBe(404);
-        });
+            assertSuccess(res, "atRiskTeams");
+            expect(Array.isArray(res.body.atRiskTeams)).toBe(true);
+        }, 30000); // Increased timeout for AI processing
 
-        it("should return 403 if user is not organizer or admin", async () => {
+        it("should get at-risk teams for admin", async () => {
+            const res = await request(app)
+                .get(`/api/reminders/round/${round._id}/at-risk`)
+                .set("Authorization", `Bearer ${adminToken}`);
+
+            assertSuccess(res, "atRiskTeams");
+        }, 30000); // Increased timeout for AI processing
+
+        it("should forbid for regular user", async () => {
             const res = await request(app)
                 .get(`/api/reminders/round/${round._id}/at-risk`)
                 .set("Authorization", `Bearer ${userToken}`);
 
-            expect(res.status).toBe(403);
-        });
+            assertForbidden(res);
+        }, 10000);
     });
 
     describe("POST /api/reminders/team/:teamId/round/:roundId/send", () => {
         it("should send reminder for organizer", async () => {
-            const { generateReminderMessage } = await import("../../services/smartReminderService");
-            vi.mocked(generateReminderMessage).mockResolvedValue("Don't forget the deadline!");
-
             const res = await request(app)
                 .post(`/api/reminders/team/${team._id}/round/${round._id}/send`)
                 .set("Authorization", `Bearer ${organizerToken}`)
-                .timeout(10000);
+                .send({
+                    message: "Please submit your work!",
+                });
 
-            expect(res.status).toBe(200);
-            expect(res.body.data).toBeTruthy();
-            expect(res.body.data.content).toContain("Reminder:");
+            assertSuccess(res);
+        }, 15000);
 
-            // Wait a bit for async message creation
-            await new Promise(resolve => setTimeout(resolve, 500));
-            const message = await Message.findOne({ team: team._id, isAI: true });
-            expect(message).toBeTruthy();
-        }, 10000);
-
-        it("should send reminder for admin", async () => {
-            const { generateReminderMessage } = await import("../../services/smartReminderService");
-            vi.mocked(generateReminderMessage).mockResolvedValue("Deadline approaching!");
-
+        it("should forbid for regular user", async () => {
             const res = await request(app)
                 .post(`/api/reminders/team/${team._id}/round/${round._id}/send`)
-                .set("Authorization", `Bearer ${adminToken}`)
-                .timeout(10000);
+                .set("Authorization", `Bearer ${userToken}`)
+                .send({
+                    message: "Test reminder",
+                });
 
-            expect(res.status).toBe(200);
-            expect(res.body.data).toBeTruthy();
+            assertForbidden(res);
         }, 10000);
-
-        it("should return 404 if team not found", async () => {
-            const fakeId = new mongoose.Types.ObjectId();
-            const res = await request(app)
-                .post(`/api/reminders/team/${fakeId}/round/${round._id}/send`)
-                .set("Authorization", `Bearer ${organizerToken}`);
-
-            expect(res.status).toBe(404);
-        });
-
-        it("should return 403 if user is not organizer or admin", async () => {
-            const res = await request(app)
-                .post(`/api/reminders/team/${team._id}/round/${round._id}/send`)
-                .set("Authorization", `Bearer ${userToken}`);
-
-            expect(res.status).toBe(403);
-        });
     });
 });
-

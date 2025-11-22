@@ -1,7 +1,10 @@
 import React from "react";
-import { Box, Typography, Paper } from "@mui/material";
+
+import { Typography, Paper } from "@mui/material";
 import { EventNote as EventNoteIcon } from "@mui/icons-material";
+
 import { useTranslation } from "react-i18next";
+
 import HackathonItem from "./HackathonItem";
 
 const HackathonList = ({ hackathons, onEdit, onDelete }) => {

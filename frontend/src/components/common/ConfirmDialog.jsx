@@ -1,5 +1,6 @@
 // src/components/common/ConfirmDialog.jsx
 import React from "react";
+
 import {
     Dialog,
     DialogTitle,
@@ -8,18 +9,10 @@ import {
     Button,
     Typography,
 } from "@mui/material";
+
 import { useTranslation } from "react-i18next";
 
-const ConfirmDialog = ({
-    open,
-    title,
-    message,
-    confirmText,
-    cancelText,
-    onConfirm,
-    onCancel,
-    confirmColor = "error",
-}) => {
+const ConfirmDialog = ({ open, title, message, confirmText, cancelText, onConfirm, onCancel, confirmColor = "error" }) => {
     const { t } = useTranslation();
 
     return (

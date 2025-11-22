@@ -5,6 +5,94 @@ const Organization = require("../models/Organization");
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 class AuthController {
+    // Test mode login - only works in development
+    async testLogin(req, res) {
+        try {
+            // Only allow in development/test mode
+            if (process.env.NODE_ENV === 'production') {
+                return res.status(403).json({ 
+                    message: "Test login is not available in production" 
+                });
+            }
+
+            const { userId } = req.body;
+
+            if (!userId) {
+                return res.status(400).json({ 
+                    message: "User ID is required for test login" 
+                });
+            }
+
+            // Find user by ID
+            const user = await User.findById(userId).populate('organization');
+
+            if (!user) {
+                return res.status(404).json({ 
+                    message: "User not found" 
+                });
+            }
+
+            // Generate JWT
+            const jwtToken = jwt.sign(
+                { id: user._id },
+                process.env.JWT_SECRET,
+                {
+                    expiresIn: "7d",
+                }
+            );
+
+            res.json({
+                user,
+                token: jwtToken,
+                message: `Test login successful as ${user.name}`,
+            });
+        } catch (err) {
+            console.error("Test Login Error:", err);
+            res.status(400).json({ message: "Test login failed" });
+        }
+    }
+
+    // Get all users for test mode
+    async getTestUsers(req, res) {
+        try {
+            // Only allow in development/test mode
+            if (process.env.NODE_ENV === 'production') {
+                return res.status(403).json({ 
+                    message: "Test users list is not available in production" 
+                });
+            }
+
+            const users = await User.find()
+                .populate('organization', 'name domain')
+                .select('_id name email role expertise organization')
+                .sort({ organization: 1, role: -1, name: 1 });
+
+            // Group users by organization
+            const groupedUsers = users.reduce((acc, user) => {
+                const orgName = user.organization.name;
+                if (!acc[orgName]) {
+                    acc[orgName] = [];
+                }
+                acc[orgName].push({
+                    id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                    expertise: user.expertise
+                });
+                return acc;
+            }, {});
+
+            res.json({
+                users: groupedUsers,
+                totalCount: users.length
+            });
+        } catch (err) {
+            console.error("Get Test Users Error:", err);
+            res.status(400).json({ message: "Failed to fetch test users" });
+        }
+    }
+
     async googleLogin(req, res) {
         var adminEmail = "srbmaury@";
 

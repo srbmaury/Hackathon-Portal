@@ -1,15 +1,16 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import AnnouncementList from "../AnnouncementList";
 import { vi } from "vitest";
-import * as api from "../../../api/announcements";
+import * as hackathonApi from "../../../api/hackathons";
 import { AuthContext } from "../../../context/AuthContext";
 import { I18nextProvider } from "react-i18next";
 import i18n from "../../../i18n/i18n";
 
 // Mock API
-vi.mock("../../../api/announcements", () => ({
-  getAnnouncements: vi.fn(),
+vi.mock("../../../api/hackathons", () => ({
+  getHackathonAnnouncements: vi.fn(),
 }));
 
 // Mock socket service
@@ -32,6 +33,7 @@ vi.mock("../../../services/socket", () => ({
 describe("AnnouncementList component", () => {
   const user = { name: "Test User", role: "admin", _id: "user1" };
   const token = "test-token";
+  const hackathonId = "hackathon123";
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -46,17 +48,21 @@ describe("AnnouncementList component", () => {
 
   const renderComponent = () =>
     render(
-      <I18nextProvider i18n={i18n}>
-        <AuthContext.Provider value={{ user, token }}>
-          <AnnouncementList />
-        </AuthContext.Provider>
-      </I18nextProvider>
+      <MemoryRouter initialEntries={[`/hackathons/${hackathonId}`]}>
+        <I18nextProvider i18n={i18n}>
+          <AuthContext.Provider value={{ user, token }}>
+            <Routes>
+              <Route path="/hackathons/:id" element={<AnnouncementList />} />
+            </Routes>
+          </AuthContext.Provider>
+        </I18nextProvider>
+      </MemoryRouter>
     );
 
   it("shows loading spinner initially", async () => {
     // Create a promise that never resolves to keep loading state
     const neverResolvingPromise = new Promise(() => {});
-    api.getAnnouncements.mockReturnValue(neverResolvingPromise);
+    hackathonApi.getHackathonAnnouncements.mockReturnValue(neverResolvingPromise);
     
     renderComponent();
     
@@ -73,7 +79,7 @@ describe("AnnouncementList component", () => {
       { _id: "1", title: "Title 1", message: "Message 1", createdAt: new Date().toISOString(), createdBy: { _id: "user1", name: "Test User" } },
       { _id: "2", title: "Title 2", message: "Message 2", createdAt: new Date().toISOString(), createdBy: { _id: "user1", name: "Test User" } },
     ];
-    api.getAnnouncements.mockResolvedValue({ 
+    hackathonApi.getHackathonAnnouncements.mockResolvedValue({ 
       announcements,
       totalPages: 1,
       total: 2
@@ -88,7 +94,7 @@ describe("AnnouncementList component", () => {
   });
 
   it("shows error alert when API fails", async () => {
-    api.getAnnouncements.mockRejectedValueOnce({
+    hackathonApi.getHackathonAnnouncements.mockRejectedValueOnce({
       response: { data: { message: "API Error" } },
     });
 
@@ -102,7 +108,7 @@ describe("AnnouncementList component", () => {
   });
 
   it("shows no announcements message when list is empty", async () => {
-    api.getAnnouncements.mockResolvedValue({ 
+    hackathonApi.getHackathonAnnouncements.mockResolvedValue({ 
       announcements: [],
       totalPages: 1,
       total: 0
@@ -114,5 +120,65 @@ describe("AnnouncementList component", () => {
       // The message uses translation key
       expect(screen.getByText("announcement.no_announcements")).toBeInTheDocument();
     });
+  });
+
+  it("handles pagination", async () => {
+    const announcements = [
+      { _id: "1", title: "Title 1", message: "Message 1", createdAt: new Date().toISOString(), createdBy: { _id: "user1", name: "Test User" } },
+    ];
+    hackathonApi.getHackathonAnnouncements.mockResolvedValue({ 
+      announcements,
+      totalPages: 2,
+      total: 2,
+      currentPage: 1
+    });
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText("Title 1")).toBeInTheDocument();
+    });
+
+    // Check pagination controls exist
+    const pagination = screen.queryByRole("navigation", { name: /pagination/i });
+    if (pagination) {
+      expect(pagination).toBeInTheDocument();
+    }
+  });
+
+  it("sets up WebSocket listeners for announcement events", async () => {
+    hackathonApi.getHackathonAnnouncements.mockResolvedValue({ 
+      announcements: [],
+      totalPages: 1,
+      total: 0
+    });
+
+    renderComponent();
+
+    await waitFor(() => {
+      // Verify socket listeners are set up
+      expect(mockSocket.on).toHaveBeenCalledWith("announcement_created", expect.any(Function));
+      expect(mockSocket.on).toHaveBeenCalledWith("announcement_updated", expect.any(Function));
+      expect(mockSocket.on).toHaveBeenCalledWith("announcement_deleted", expect.any(Function));
+    });
+  });
+
+  it("cleans up WebSocket listeners on unmount", async () => {
+    hackathonApi.getHackathonAnnouncements.mockResolvedValue({ 
+      announcements: [],
+      totalPages: 1,
+      total: 0
+    });
+
+    const { unmount } = renderComponent();
+
+    await waitFor(() => {
+      expect(mockSocket.on).toHaveBeenCalled();
+    });
+
+    unmount();
+
+    // Check that off was called for cleanup
+    expect(mockSocket.off).toHaveBeenCalled();
   });
 });

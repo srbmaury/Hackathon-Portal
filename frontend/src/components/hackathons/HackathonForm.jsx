@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
+
 import {
     Paper,
     Typography,
@@ -13,15 +14,21 @@ import {
     Box,
     CircularProgress,
 } from "@mui/material";
+
 import { Add, Delete, AutoAwesome, Lightbulb } from "@mui/icons-material";
-import toast from "react-hot-toast";
-import { useTranslation } from "react-i18next";
-import MDEditor from "@uiw/react-md-editor";
+
 import { useTheme } from "@mui/material/styles";
+import MDEditor from "@uiw/react-md-editor";
+
+import { useTranslation } from "react-i18next";
+import toast from "react-hot-toast";
+
 import { formatHackathonDescription, suggestRound } from "../../api/hackathons";
+import { AuthContext } from "../../context/AuthContext";
 
 const HackathonForm = ({ onSubmit, initialData, onCancel }) => {
     const { t } = useTranslation();
+    const { token } = useContext(AuthContext);
     const theme = useTheme();
     const colorScheme = theme.palette.mode === "dark" ? "dark" : "light";
 
@@ -32,8 +39,7 @@ const HackathonForm = ({ onSubmit, initialData, onCancel }) => {
     const [maximumTeamSize, setMaximumTeamSize] = useState(initialData?.maximumTeamSize || 5);
     const [rounds, setRounds] = useState(initialData?.rounds || []);
     const [formatting, setFormatting] = useState(false);
-    const [suggestingRound, setSuggestingRound] = useState(null); // Track which round is being suggested
-    const token = localStorage.getItem("token");
+    const [suggestingRound, setSuggestingRound] = useState(null);
 
     useEffect(() => {
         setTitle(initialData?.title || "");

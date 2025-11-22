@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
+
 import {
     IconButton,
     Badge,
@@ -13,15 +14,16 @@ import {
     Button,
     Divider,
     Stack,
-    Chip,
 } from "@mui/material";
+
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import CloseIcon from "@mui/icons-material/Close";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+
+import { useTranslation } from "react-i18next";
 import { useNotifications } from "../../context/NotificationContext";
 import { SettingsContext } from "../../context/SettingsContext";
-import { useTranslation } from "react-i18next";
-import { useContext } from "react";
+
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 
@@ -29,8 +31,7 @@ dayjs.extend(relativeTime);
 
 const NotificationBell = () => {
     const { notificationsEnabled } = useContext(SettingsContext);
-    const { notifications, unreadCount, markAsRead, markAllAsRead, removeNotification } =
-        useNotifications();
+    const { notifications, unreadCount, markAsRead, markAllAsRead, removeNotification } = useNotifications();
     const { t } = useTranslation();
     const [anchorEl, setAnchorEl] = useState(null);
 

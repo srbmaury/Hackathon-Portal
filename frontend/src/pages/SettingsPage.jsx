@@ -1,22 +1,26 @@
 import React, { useContext, useState, useEffect } from "react";
+
 import {
-    Container,
-    Typography,
-    Stack,
     Card,
     CardContent,
+    CircularProgress,
+    Container,
     FormControl,
-    RadioGroup,
     FormControlLabel,
     Radio,
+    RadioGroup,
+    Stack,
     Switch,
-    CircularProgress,
+    Typography,
 } from "@mui/material";
+
 import DashboardLayout from "../components/dashboard/DashboardLayout";
-import { SettingsContext } from "../context/SettingsContext.jsx";
+
 import { AuthContext } from "../context/AuthContext.jsx";
+import { SettingsContext } from "../context/SettingsContext.jsx";
+
 import { useTranslation } from "react-i18next";
-import { updateNotificationPreferences, getMyProfile } from "../api/users";
+import { updateNotificationPreferences } from "../api/users";
 import toast from "react-hot-toast";
 
 const SettingsPage = () => {

@@ -12,7 +12,7 @@ exports.protect = async (req, res, next) => {
         const user = await User.findById(decoded.id).populate("organization");
 
         if (!user) {
-            return res.status(401).json({ message: req.__("auth.user_not_found") });
+            return res.status(404).json({ message: req.__("auth.user_not_found") });
         }
 
         req.user = user;

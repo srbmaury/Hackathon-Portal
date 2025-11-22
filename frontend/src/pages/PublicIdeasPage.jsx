@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from "react";
+
 import {
     Container,
+    Divider,
     Paper,
-    Typography,
     Stack,
     ToggleButton,
     ToggleButtonGroup,
-    Divider,
+    Typography,
 } from "@mui/material";
-import DashboardLayout from "../components/dashboard/DashboardLayout";
-import { getPublicIdeas } from "../api/ideas";
-import IdeasTable from "../components/ideas/IdeasTable";
+
 import { useTranslation } from "react-i18next";
+
+import DashboardLayout from "../components/dashboard/DashboardLayout";
+import IdeasTable from "../components/ideas/IdeasTable";
+
+import { getPublicIdeas } from "../api/ideas";
 
 const PublicIdeasPage = () => {
     const { t } = useTranslation();
