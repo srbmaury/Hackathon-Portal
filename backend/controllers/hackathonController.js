@@ -3,7 +3,7 @@ const Team = require("../models/Team");
 const Round = require("../models/Round");
 const HackathonRole = require("../models/HackathonRole");
 const User = require("../models/User");
-const { emitHackathonUpdate, emitHackathonRoleUpdate } = require("../socket");
+const { emitHackathonUpdate, emitHackathonRoleUpdate, emitTeamUpdate } = require("../socket");
 const { assignTeamsToMentors } = require("../services/mentorAssignmentService");
 const {
     formatHackathonDescription,
@@ -734,7 +734,6 @@ class HackathonController {
             const result = await assignTeamsToMentors(id);
 
             // Emit team update event for real-time sync
-            const { emitTeamUpdate } = require("../socket");
             emitTeamUpdate(req.user.organization._id, {
                 eventType: "mentors_assigned",
                 hackathonId: id,
