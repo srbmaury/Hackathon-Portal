@@ -16,7 +16,7 @@ module.exports = defineConfig({
     globals: false,
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'lcov', 'html'],
+      reporter: ['text', 'lcov', 'html', 'json', 'json-summary'],
       exclude: ['node_modules/', 'test/fixtures/'],
       reportsDirectory: './coverage',
     },
