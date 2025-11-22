@@ -185,7 +185,22 @@ jobs:
 
       - name: Generate Test Coverage
         working-directory: backend
-        run: npm run test:coverage
+        run: |
+          # Run coverage with --bail=false to ensure all tests run and coverage is generated even if some fail
+          npx vitest run --coverage --bail=0 || true
+          # Verify coverage file was created
+          if [ -f coverage/coverage-summary.json ]; then
+            echo "✅ Coverage file generated successfully"
+            ls -lh coverage/coverage-summary.json
+            # Show a preview of the coverage
+            jq '.total.lines.pct' coverage/coverage-summary.json 2>/dev/null || echo "Could not read coverage percentage"
+          else
+            echo "⚠️ Coverage file NOT found after generation"
+            echo "Contents of coverage directory:"
+            ls -la coverage/ 2>/dev/null || echo "Coverage directory does not exist"
+            # Try to find any coverage files
+            find . -name "*coverage*.json" -type f 2>/dev/null | head -5 || echo "No coverage JSON files found"
+          fi
         continue-on-error: true
 
       - name: Update Summary with Test Results
@@ -201,12 +216,40 @@ jobs:
             echo "_Auto-updated • Tests running..._" >> summary.md
           fi
           
-          # Get test results if available (jq is pre-installed on GitHub runners)
+          # Debug: Check if coverage directory exists and list contents
+          echo "Current directory: $(pwd)"
+          echo "Checking for coverage files..."
+          
+          # Check multiple possible locations
+          COV_FILE=""
           if [ -f backend/coverage/coverage-summary.json ]; then
-            BACKEND_COV=$(jq -r '.total.lines.pct // "N/A"' backend/coverage/coverage-summary.json 2>/dev/null || echo "N/A")
-            BACKEND_COV=$(printf "%.1f" "$BACKEND_COV" 2>/dev/null || echo "$BACKEND_COV")
+            COV_FILE="backend/coverage/coverage-summary.json"
+            echo "✅ Found coverage file at: $COV_FILE"
+          elif [ -f ./backend/coverage/coverage-summary.json ]; then
+            COV_FILE="./backend/coverage/coverage-summary.json"
+            echo "✅ Found coverage file at: $COV_FILE"
           else
-            BACKEND_COV="N/A"
+            echo "⚠️ coverage-summary.json NOT found"
+            if [ -d backend/coverage ]; then
+              echo "Backend coverage directory exists, contents:"
+              ls -la backend/coverage/ | head -10
+            else
+              echo "Backend coverage directory NOT found"
+            fi
+          fi
+          
+          # Get test results if available (jq is pre-installed on GitHub runners)
+          BACKEND_COV="N/A"
+          if [ -n "$COV_FILE" ] && [ -f "$COV_FILE" ]; then
+            echo "Extracting coverage from $COV_FILE..."
+            BACKEND_COV_RAW=$(jq -r '.total.lines.pct' "$COV_FILE" 2>&1)
+            echo "Raw coverage value: $BACKEND_COV_RAW"
+            if [ -n "$BACKEND_COV_RAW" ] && [ "$BACKEND_COV_RAW" != "null" ] && [ "$BACKEND_COV_RAW" != "" ] && [[ ! "$BACKEND_COV_RAW" =~ ^jq: ]]; then
+              BACKEND_COV=$(printf "%.1f" "$BACKEND_COV_RAW" 2>/dev/null || echo "$BACKEND_COV_RAW")
+              echo "✅ Formatted coverage: $BACKEND_COV"
+            else
+              echo "❌ Failed to extract coverage from JSON: $BACKEND_COV_RAW"
+            fi
           fi
           
           TIMESTAMP=$(date -u +"%H:%M:%S UTC")
