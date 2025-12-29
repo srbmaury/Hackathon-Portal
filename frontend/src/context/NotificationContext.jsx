@@ -64,6 +64,17 @@ export const NotificationProvider = ({ children }) => {
     const markAsRead = useCallback(async (notificationId) => {
         if (!token) return;
 
+        // Validate notification ID before making API call
+        if (!notificationId || typeof notificationId !== 'string' || notificationId.length !== 24) {
+            console.warn("Invalid notification ID, marking as read in local state only:", notificationId);
+            setNotifications((prev) =>
+                prev.map((n) =>
+                    n._id === notificationId ? { ...n, read: true } : n
+                )
+            );
+            return;
+        }
+
         try {
             await markNotificationAsRead(notificationId, token);
             setNotifications((prev) =>
@@ -74,6 +85,15 @@ export const NotificationProvider = ({ children }) => {
             setUnreadCount((prev) => Math.max(0, prev - 1));
         } catch (error) {
             console.error("Error marking notification as read:", error);
+            // If notification not found, just update local state
+            if (error.response?.status === 404 || error.response?.status === 400) {
+                setNotifications((prev) =>
+                    prev.map((n) =>
+                        n._id === notificationId ? { ...n, read: true } : n
+                    )
+                );
+                return;
+            }
             toast.error("Failed to mark notification as read");
         }
     }, [token]);
@@ -97,6 +117,13 @@ export const NotificationProvider = ({ children }) => {
     const removeNotification = useCallback(async (notificationId) => {
         if (!token) return;
 
+        // Validate notification ID before making API call
+        if (!notificationId || typeof notificationId !== 'string' || notificationId.length !== 24) {
+            console.warn("Invalid notification ID, removing from local state only:", notificationId);
+            setNotifications((prev) => prev.filter((n) => n._id !== notificationId));
+            return;
+        }
+
         try {
             await deleteNotification(notificationId, token);
             const notification = notifications.find((n) => n._id === notificationId);
@@ -106,13 +133,24 @@ export const NotificationProvider = ({ children }) => {
             }
         } catch (error) {
             console.error("Error deleting notification:", error);
+            // If notification not found (already deleted or doesn't exist), just remove from local state
+            if (error.response?.status === 404 || error.response?.status === 400) {
+                setNotifications((prev) => prev.filter((n) => n._id !== notificationId));
+                return;
+            }
             toast.error("Failed to delete notification");
         }
     }, [token, notifications]);
 
     // Add new notification
     const addNotification = useCallback((notification) => {
-        setNotifications((prev) => [notification, ...prev]);
+        setNotifications((prev) => {
+            // Only add if not already present (by _id)
+            if (prev.some((n) => n._id === notification._id)) {
+                return prev;
+            }
+            return [notification, ...prev];
+        });
         if (!notification.read) {
             setUnreadCount((prev) => prev + 1);
         }

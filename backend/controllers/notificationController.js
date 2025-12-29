@@ -1,5 +1,6 @@
 const Notification = require("../models/Notification");
 const User = require("../models/User");
+const mongoose = require("mongoose");
 
 class NotificationController {
     /**
@@ -50,6 +51,13 @@ class NotificationController {
             const { id } = req.params;
             const userId = req.user.id;
 
+            // Validate ObjectId format to prevent CastError
+            if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+                return res.status(400).json({
+                    message: req.__("notification.invalid_id") || "Invalid notification ID",
+                });
+            }
+
             const notification = await Notification.findOne({
                 _id: id,
                 user: userId,
@@ -70,6 +78,12 @@ class NotificationController {
             });
         } catch (error) {
             console.error("Mark Notification Read Error:", error);
+            // Handle CastError specifically (invalid ObjectId)
+            if (error.name === "CastError") {
+                return res.status(400).json({
+                    message: req.__("notification.invalid_id") || "Invalid notification ID",
+                });
+            }
             res.status(500).json({
                 message: req.__("notification.update_failed") || "Failed to update notification",
                 error: error.message,
@@ -113,6 +127,13 @@ class NotificationController {
             const { id } = req.params;
             const userId = req.user.id;
 
+            // Validate ObjectId format to prevent CastError
+            if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+                return res.status(400).json({
+                    message: req.__("notification.invalid_id") || "Invalid notification ID",
+                });
+            }
+
             const notification = await Notification.findOneAndDelete({
                 _id: id,
                 user: userId,
@@ -129,6 +150,12 @@ class NotificationController {
             });
         } catch (error) {
             console.error("Delete Notification Error:", error);
+            // Handle CastError specifically (invalid ObjectId)
+            if (error.name === "CastError") {
+                return res.status(400).json({
+                    message: req.__("notification.invalid_id") || "Invalid notification ID",
+                });
+            }
             res.status(500).json({
                 message: req.__("notification.delete_failed") || "Failed to delete notification",
                 error: error.message,

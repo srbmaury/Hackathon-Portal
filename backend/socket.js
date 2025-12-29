@@ -4,6 +4,20 @@ const User = require("./models/User");
 
 let io;
 
+// Track recent join events to prevent duplicate notifications (session-level dedup)
+const recentJoinEvents = new Map(); // key: `${sessionId}:${userId}:${memberId}` -> timestamp
+const DEDUP_INTERVAL_MS = 60000; // 60 seconds
+
+// Cleanup old entries periodically
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, timestamp] of recentJoinEvents.entries()) {
+        if (now - timestamp > DEDUP_INTERVAL_MS) {
+            recentJoinEvents.delete(key);
+        }
+    }
+}, 30000); // Cleanup every 30 seconds
+
 const initializeSocket = (httpServer) => {
     io = new Server(httpServer, {
         cors: {
@@ -135,13 +149,11 @@ const initializeSocket = (httpServer) => {
         // --- WebRTC Signaling for Demo Streaming ---
 
         // Join WebRTC room for a demo session
-        socket.on("webrtc_join_session", ({ sessionId, role }) => {
+        socket.on("webrtc_join_session", async ({ sessionId, role }) => {
             const room = `webrtc:${sessionId}`;
-            
             // Get existing participants BEFORE joining
             const existingClients = io.sockets.adapter.rooms.get(room);
             const existingPeers = [];
-            
             if (existingClients) {
                 for (const clientId of existingClients) {
                     const clientSocket = io.sockets.sockets.get(clientId);
@@ -154,7 +166,6 @@ const initializeSocket = (httpServer) => {
                     }
                 }
             }
-            
             socket.join(room);
             socket.webrtcRole = role; // Store role on socket for later
             const userName = socket.user?.name || "Unknown";
@@ -167,10 +178,83 @@ const initializeSocket = (httpServer) => {
                 name: userName
             });
 
+            // If judge/organizer joins, notify all team members (participants) who are NOT present in the room
+            if (role === "organizer" || role === "judge") {
+                try {
+                    const DemoSession = require("./models/DemoSession");
+                    const Notification = require("./models/Notification");
+                    const session = await DemoSession.findById(sessionId).populate("team");
+                    if (session && session.team && Array.isArray(session.team.members) && session.team.members.length > 0) {
+                        // Get current socket IDs in the room
+                        const currentClients = io.sockets.adapter.rooms.get(room) || new Set();
+                        // Find userIds of those currently in the room
+                        const presentUserIds = new Set();
+                        for (const clientId of currentClients) {
+                            const clientSocket = io.sockets.sockets.get(clientId);
+                            if (clientSocket && clientSocket.userId) {
+                                presentUserIds.add(String(clientSocket.userId));
+                            }
+                        }
+                        let notified = 0;
+                        for (const memberId of session.team.members) {
+                            // Only notify if not the joiner and not already present in the room
+                            if (String(memberId) !== String(socket.userId) && !presentUserIds.has(String(memberId))) {
+                                // In-memory deduplication to prevent race conditions
+                                const dedupKey = `${sessionId}:${socket.userId}:${memberId}`;
+                                const lastNotified = recentJoinEvents.get(dedupKey);
+                                
+                                if (lastNotified && Date.now() - lastNotified < DEDUP_INTERVAL_MS) {
+                                    console.log(`[WebRTC][SKIP] In-memory dedup: Already notified ${memberId} about this join (session=${sessionId})`);
+                                    continue;
+                                }
+                                
+                                // Mark as notified immediately to prevent race conditions
+                                recentJoinEvents.set(dedupKey, Date.now());
+                                
+                                // Also check database for extra safety
+                                const recent = await Notification.findOne({
+                                    user: memberId,
+                                    type: "team_message",
+                                    "relatedEntity.type": "team",
+                                    "relatedEntity.id": session.team._id,
+                                    message: `${role.charAt(0).toUpperCase() + role.slice(1)} ${userName} joined your demo session.`,
+                                    createdAt: { $gte: new Date(Date.now() - 60 * 1000) }
+                                });
+                                if (!recent) {
+                                    console.log(`[WebRTC][NOTIFY] Creating notification for user=${memberId}, session=${sessionId}, role=${role}, userName=${userName}`);
+                                    const notif = await Notification.create({
+                                        user: memberId,
+                                        type: "team_message",
+                                        title: "Demo Session Update",
+                                        message: `${role.charAt(0).toUpperCase() + role.slice(1)} ${userName} joined your demo session.`,
+                                        relatedEntity: { type: "team", id: session.team._id },
+                                        organization: session.team.organization,
+                                        read: false
+                                    });
+                                    io.to(`user:${memberId}`).emit("notification", { notification: notif });
+                                    notified++;
+                                    console.log(`[WebRTC][EMIT] Notified participant ${memberId} about ${role} ${userName} joining session ${sessionId}`);
+                                } else {
+                                    console.log(`[WebRTC][SKIP] Skipped duplicate notification for participant ${memberId} (session=${sessionId})`);
+                                }
+                            } else {
+                                console.log(`[WebRTC][SKIP] Not notifying user=${memberId} (already present or is joiner)`);
+                            }
+                        }
+                        if (notified === 0) {
+                            console.warn(`[WebRTC] No participants notified for session ${sessionId} (team members: ${session.team.members.map(String).join(", ")})`);
+                        }
+                    } else {
+                        console.warn(`[WebRTC] Team or members missing for session ${sessionId}. session.team:`, session?.team);
+                    }
+                } catch (err) {
+                    console.error("Failed to notify team on judge/organizer join:", err);
+                }
+            }
+
             // Get updated participant count
             const clients = io.sockets.adapter.rooms.get(room);
             const participants = clients ? Array.from(clients).length : 0;
-            
             // Send room status AND list of existing peers to the new joiner
             socket.emit("webrtc_room_status", {
                 sessionId,
@@ -273,8 +357,8 @@ const initializeSocket = (httpServer) => {
             const room = `webrtc:${sessionId}`;
             const name = userName || socket.user?.name || "Someone";
             console.log(`Screen share started by ${socket.userId} (${name}) in room ${room}`);
-            socket.to(room).emit("webrtc_screen_share_started", { 
-                oderId: socket.userId, 
+            socket.to(room).emit("webrtc_screen_share_started", {
+                oderId: socket.userId,
                 name
             });
         });
@@ -282,8 +366,8 @@ const initializeSocket = (httpServer) => {
         socket.on("webrtc_screen_share_stopped", ({ sessionId }) => {
             const room = `webrtc:${sessionId}`;
             console.log(`Screen share stopped by ${socket.userId} in room ${room}`);
-            socket.to(room).emit("webrtc_screen_share_stopped", { 
-                oderId: socket.userId 
+            socket.to(room).emit("webrtc_screen_share_stopped", {
+                oderId: socket.userId
             });
         });
 
