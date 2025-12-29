@@ -1,18 +1,67 @@
-# React + Vite
+# Hackathon Portal - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the frontend application for the Hackathon Portal, built with React 19 and Vite.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **React 19** with Vite
+- **Material-UI (MUI)** for components and theming
+- **React Router** for navigation
+- **Socket.io Client** for real-time updates
+- **Axios** for API calls
+- **React i18next** for internationalization
+- **Markdown Editor** (@uiw/react-md-editor) for rich text editing
+- **React Hot Toast** for notifications
+- **Vitest** with React Testing Library for testing
 
-## React Compiler
+## Getting Started
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+See the main [README.md](../README.md) for complete setup instructions.
 
-Note: This will impact Vite dev & build performances.
+### Quick Start
 
-## Expanding the ESLint configuration
+1. Install dependencies:
+```bash
+npm install
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+2. Create a `.env` file:
+```env
+VITE_API_URL=http://localhost:5000
+VITE_GOOGLE_CLIENT_ID=your-google-client-id
+```
+
+3. Start the development server:
+```bash
+npm run dev
+```
+
+The frontend will run on `http://localhost:5173`
+
+## Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm test` - Run tests
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:coverage` - Generate test coverage
+- `npm run lint` - Run ESLint
+
+## Project Structure
+
+```
+frontend/
+├── src/
+│   ├── components/       # Reusable React components
+│   ├── pages/            # Page components
+│   ├── api/              # API client functions
+│   ├── context/          # React context providers
+│   ├── i18n/             # Internationalization files
+│   ├── routes/           # Route configuration
+│   └── services/         # Frontend services
+├── public/               # Static assets
+└── coverage/             # Test coverage reports
+```
+
+For more details, see the main [README.md](../README.md).

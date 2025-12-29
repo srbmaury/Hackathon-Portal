@@ -200,8 +200,8 @@ describe("AnnouncementItem component", () => {
   });
 
   test("shows error toast on API failure during update", async () => {
-    announcementApi.updateAnnouncement.mockRejectedValue({ 
-      response: { data: { message: "Failed!" } } 
+    announcementApi.updateAnnouncement.mockRejectedValue({
+      response: { data: { message: "Failed!" } }
     });
     renderComponent({ hackathonId: null });
 
@@ -218,7 +218,7 @@ describe("AnnouncementItem component", () => {
     renderComponent({ onDeleted: vi.fn() });
 
     fireEvent.click(screen.getByTestId("DeleteIcon").closest("button"));
-    
+
     // Set up mock for websocket error event
     mockSocket.on.mockImplementation((event, handler) => {
       if (event === "announcement_delete_error") {
@@ -240,18 +240,18 @@ describe("AnnouncementItem component", () => {
   });
 
   test("hides edit/delete buttons when user cannot edit", () => {
-    renderComponent({ 
+    renderComponent({
       user: { ...user, role: "participant" },
       hackathonId: null
     });
-    
+
     expect(screen.queryByTestId("EditIcon")).not.toBeInTheDocument();
     expect(screen.queryByTestId("DeleteIcon")).not.toBeInTheDocument();
   });
 
   test("shows edit/delete buttons for hackathon organizer", () => {
     renderComponent({ hackathonId, myRole: "organizer" });
-    
+
     expect(screen.getByTestId("EditIcon")).toBeInTheDocument();
     expect(screen.getByTestId("DeleteIcon")).toBeInTheDocument();
   });

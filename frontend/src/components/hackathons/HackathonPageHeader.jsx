@@ -131,6 +131,7 @@ const HackathonPageHeader = ({ hackathon, myRole, myTeam, setConfirmDialog, setI
                         />
                     )}
                     {myRole && <Tab label={t("teams.title")} />}
+                    {myRole && <Tab label={t("demo_stage.title")} />}
                 </Tabs>
             </Box>
         </>

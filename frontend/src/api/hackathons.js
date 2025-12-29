@@ -1,6 +1,6 @@
 // Add role to user in hackathon
 export const addHackathonRole = async (hackathonId, userId, role, token) => {
-    const res = await API.post(`/hackathons/${hackathonId}/roles`, 
+    const res = await API.post(`/hackathons/${hackathonId}/roles`,
         { userId, role },
         { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -13,7 +13,7 @@ export const createHackathon = async (hackathon, token) => {
     const res = await API.post("/hackathons", hackathon, {
         headers: { Authorization: `Bearer ${token}` },
     });
-    return res && typeof res.data !== 'undefined' ? res.data : undefined;
+    return res.data;
 };
 
 // Get All Hackathons
@@ -52,7 +52,7 @@ export const deleteHackathon = async (id, token) => {
 
 // Assign role to user in hackathon
 export const assignHackathonRole = async (hackathonId, userId, role, token) => {
-    const res = await API.post(`/hackathons/${hackathonId}/roles`, 
+    const res = await API.post(`/hackathons/${hackathonId}/roles`,
         { userId, role },
         { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -128,7 +128,7 @@ export const assignMentorsToTeams = async (hackathonId, token) => {
 
 // Format hackathon description using AI
 export const formatHackathonDescription = async (title, description, token) => {
-    const res = await API.post(`/hackathons/format`, 
+    const res = await API.post(`/hackathons/format`,
         { title, description },
         { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -137,7 +137,7 @@ export const formatHackathonDescription = async (title, description, token) => {
 
 // Suggest round structure using AI
 export const suggestRound = async (title, description, roundNumber, existingRounds, hackathonStartDate, token) => {
-    const res = await API.post(`/hackathons/suggest-round`, 
+    const res = await API.post(`/hackathons/suggest-round`,
         { title, description, roundNumber, existingRounds, hackathonStartDate },
         { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -146,7 +146,7 @@ export const suggestRound = async (title, description, roundNumber, existingRoun
 
 // Suggest multiple rounds using AI
 export const suggestRounds = async (title, description, numberOfRounds, hackathonStartDate, token) => {
-    const res = await API.post(`/hackathons/suggest-rounds`, 
+    const res = await API.post(`/hackathons/suggest-rounds`,
         { title, description, numberOfRounds, hackathonStartDate },
         { headers: { Authorization: `Bearer ${token}` } }
     );

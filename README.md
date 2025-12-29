@@ -22,6 +22,14 @@ A comprehensive platform for managing hackathons, teams, ideas, and participants
 - **Team Chat**: Real-time messaging for teams with AI assistant support
 - **Automated Reminders**: Smart deadline reminders for at-risk teams and submission deadline notifications
 
+### Live AI-Powered Demo Day Stage
+- **Virtual Stage**: Real-time, interactive virtual stage where teams present projects to judges, mentors, and the public.
+- **Live Video Demo**: Each team gets a timed slot with a live video stream (WebRTC or integrated service like Daily/Zoom).
+- **Live Q&A**: Audience and judges submit live questions, filtered and summarized by an AI assistant in real time.
+- **AI Feedback & Buzzwords**: AI generates instant feedback and “buzzwords” (e.g., “Most Innovative”, “Best Pitch”, “Crowd Favorite”) based on sentiment analysis and engagement.
+- **Live Voting & Leaderboard**: Viewers can vote/react live; leaderboard updates in real time.
+- **AI Highlights Reel**: After each demo, AI generates a short, shareable summary and highlights reel for social media.
+
 ### Role System
 - **Organization-Level Roles**:
   - `admin`: Full platform access
@@ -135,6 +143,14 @@ A comprehensive platform for managing hackathons, teams, ideas, and participants
 - Deactivates rounds that have passed their end date
 - Activates rounds that have reached their start date
 - Runs daily at midnight (UTC)
+Runs daily at midnight (UTC)
+
+#### 10. Live AI-Powered Demo Day Stage
+- Real-time virtual stage for team demos with live video streaming
+- Live Q&A with AI-powered question filtering and summarization
+- AI-generated instant feedback, buzzwords, and sentiment analysis
+- Live voting and real-time leaderboard
+- AI-generated summary and highlights reel after each demo
 
 ## 🛠️ Tech Stack
 
@@ -240,6 +256,27 @@ The frontend will run on `http://localhost:5173`
 
 https://yaml-visualizer.netlify.app/shared/SO0aomWdoe
 
+```
+Hackathon-Portal/
+├── backend/              # Node.js/Express backend
+│   ├── controllers/      # Request handlers
+│   ├── models/           # MongoDB models
+│   ├── routes/           # API routes
+│   ├── services/         # Business logic & AI services
+│   ├── middleware/       # Auth, validation, etc.
+│   ├── config/           # Database, Cloudinary, i18n config
+│   └── locales/          # Backend translations
+├── frontend/             # React frontend
+│   ├── src/
+│   │   ├── components/   # React components
+│   │   ├── pages/        # Page components
+│   │   ├── api/          # API client functions
+│   │   ├── context/      # React context providers
+│   │   └── i18n/         # Frontend translations
+│   └── public/           # Static assets
+└── .github/workflows/    # CI/CD workflows
+```
+
 ## 🔑 Key Features
 
 ### Authentication
@@ -320,6 +357,32 @@ npm test              # Run tests once
 npm run test:watch    # Run tests in watch mode
 npm run test:coverage # Run with coverage report
 ```
+
+### E2E Tests (Selenium)
+
+End-to-End tests using Selenium WebDriver are available in the `e2e/` directory.
+
+**Prerequisites:**
+- Backend server running on `http://localhost:5000`
+- Frontend server running on `http://localhost:5173`
+- Test data seeded in database
+
+**Setup:**
+```bash
+cd e2e
+npm install
+```
+
+**Run E2E tests:**
+```bash
+cd e2e
+npm test              # Run all E2E tests
+npm run test:headless # Run in headless mode
+npm run test:chrome   # Run with Chrome browser
+npm run test:firefox  # Run with Firefox browser
+```
+
+For detailed E2E testing documentation, see [e2e/README.md](e2e/README.md).
 
 ## 📡 API Endpoints
 
@@ -498,7 +561,6 @@ The platform includes comprehensive AI-powered features using OpenAI. To enable 
 - **Email Notifications**: Send email notifications for important events (round start/end, score updates, announcements)
 - **Advanced Analytics**: Dashboard with statistics, participation metrics, and performance analytics
 - **Export Functionality**: Export submissions, standings, and reports to PDF/Excel
-- **Notification System**: In-app notification center with read/unread status
 - **Advanced Search**: Full-text search across hackathons, ideas, teams, and users
 - **File Preview**: Preview uploaded files (PDFs, images) without downloading
 

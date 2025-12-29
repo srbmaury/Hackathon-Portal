@@ -76,4 +76,25 @@ describe('submissions API', () => {
     );
     expect(data).toBe('compare-data');
   });
+
+  it('submitForRound does NOT set Content-Type when submissionData is FormData', async () => {
+    const formData = new FormData();
+    formData.append('file', new Blob(['test']), 'test.txt');
+
+    API.post.mockResolvedValue({ data: 'post-data' });
+
+    const data = await submissionsApi.submitForRound(roundId, formData, token);
+
+    expect(API.post).toHaveBeenCalledWith(
+      `/submissions/${roundId}`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    expect(data).toBe('post-data');
+  });
 });
