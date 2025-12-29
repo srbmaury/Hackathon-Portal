@@ -21,8 +21,12 @@ class CloudinaryStorage {
             const uploadOptions = {
                 folder: this.options.params?.folder || "hackathon-submissions",
                 resource_type: this.options.params?.resource_type || "auto",
-                allowed_formats: this.options.params?.allowed_formats || ["jpg", "jpeg", "png", "pdf", "doc", "docx", "ppt", "pptx", "zip", "rar"],
             };
+
+            // Only add allowed_formats if specified (video uploads should not have this restriction)
+            if (this.options.params?.allowed_formats) {
+                uploadOptions.allowed_formats = this.options.params.allowed_formats;
+            }
 
             // Upload to Cloudinary using upload_stream
             const uploadStream = cloudinary.uploader.upload_stream(
@@ -61,12 +65,20 @@ class CloudinaryStorage {
     }
 }
 
-// Configure Cloudinary storage for multer
+// Configure Cloudinary storage for document uploads
 const storage = new CloudinaryStorage({
     params: {
         folder: "hackathon-submissions",
         allowed_formats: ["jpg", "jpeg", "png", "pdf", "doc", "docx", "ppt", "pptx", "zip", "rar"],
         resource_type: "auto",
+    },
+});
+
+// Configure Cloudinary storage for video uploads (demo recordings)
+const videoStorage = new CloudinaryStorage({
+    params: {
+        folder: "demo-recordings",
+        resource_type: "video",
     },
 });
 
@@ -81,5 +93,27 @@ const upload = multer({
     },
 });
 
+// Video upload with larger size limit
+const videoUpload = multer({
+    storage: videoStorage,
+    limits: {
+        fileSize: 500 * 1024 * 1024, // 500MB limit for videos
+    },
+    fileFilter: (req, file, cb) => {
+        // Accept video file types - use startsWith to handle codec suffixes like video/webm;codecs=vp9
+        const mimeType = file.mimetype?.toLowerCase() || '';
+        const isVideo = mimeType.startsWith('video/') || 
+                        mimeType.startsWith('application/octet-stream'); // Some browsers send this
+        
+        if (isVideo) {
+            cb(null, true);
+        } else {
+            console.log("Rejected video upload with mimetype:", file.mimetype);
+            cb(new Error(`Invalid video format: ${file.mimetype}. Expected video/*`), false);
+        }
+    },
+});
+
 module.exports = upload;
+module.exports.videoUpload = videoUpload;
 

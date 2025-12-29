@@ -131,7 +131,7 @@ const HackathonItem = ({ hackathon, onEdit, onDelete }) => {
                         >
                             {t("hackathon.view_details") || "View Details"}
                         </Button>
-                        {(user.role === "admin" || user.role === "hackathon_creator") && (
+                        {(user.role === "admin" || hackathon.myRole === "organizer") && (
                             <>
                                 <Button
                                     variant="outlined"

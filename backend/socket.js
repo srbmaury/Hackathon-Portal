@@ -23,7 +23,7 @@ const initializeSocket = (httpServer) => {
 
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             const user = await User.findById(decoded.id).populate("organization");
-            
+
             if (!user) {
                 return next(new Error("User not found"));
             }
@@ -41,11 +41,12 @@ const initializeSocket = (httpServer) => {
 
         // Join user's personal room for targeted updates
         socket.join(`user:${socket.userId}`);
-        
+
         // Join organization room for organization-wide updates
         if (socket.user?.organization?._id) {
             socket.join(`org:${socket.user.organization._id}`);
         }
+
 
         // Handle announcement deletion via websocket
         socket.on("delete_announcement", async (data) => {
@@ -62,7 +63,7 @@ const initializeSocket = (httpServer) => {
                 }
 
                 const announcement = await Announcement.findById(announcementId);
-                
+
                 if (!announcement) {
                     socket.emit("announcement_delete_error", {
                         announcementId,
@@ -72,7 +73,7 @@ const initializeSocket = (httpServer) => {
                 }
 
                 // Get organization ID properly
-                const userOrgId = socket.user?.organization?._id 
+                const userOrgId = socket.user?.organization?._id
                     ? String(socket.user.organization._id)
                     : String(socket.user?.organization || "");
                 const announcementOrgId = String(announcement.organization);
@@ -128,6 +129,162 @@ const initializeSocket = (httpServer) => {
                     error: error.message || "Failed to delete announcement"
                 });
             }
+        });
+
+
+        // --- WebRTC Signaling for Demo Streaming ---
+
+        // Join WebRTC room for a demo session
+        socket.on("webrtc_join_session", ({ sessionId, role }) => {
+            const room = `webrtc:${sessionId}`;
+            
+            // Get existing participants BEFORE joining
+            const existingClients = io.sockets.adapter.rooms.get(room);
+            const existingPeers = [];
+            
+            if (existingClients) {
+                for (const clientId of existingClients) {
+                    const clientSocket = io.sockets.sockets.get(clientId);
+                    if (clientSocket && clientSocket.userId !== socket.userId) {
+                        existingPeers.push({
+                            oderId: clientSocket.userId,
+                            name: clientSocket.user?.name || "Participant",
+                            role: clientSocket.webrtcRole || "participant"
+                        });
+                    }
+                }
+            }
+            
+            socket.join(room);
+            socket.webrtcRole = role; // Store role on socket for later
+            const userName = socket.user?.name || "Unknown";
+            console.log(`User ${socket.userId} (${userName}) joined WebRTC room ${room} as ${role}`);
+
+            // Notify others in the room that someone joined
+            socket.to(room).emit("webrtc_peer_joined", {
+                oderId: socket.userId,
+                role,
+                name: userName
+            });
+
+            // Get updated participant count
+            const clients = io.sockets.adapter.rooms.get(room);
+            const participants = clients ? Array.from(clients).length : 0;
+            
+            // Send room status AND list of existing peers to the new joiner
+            socket.emit("webrtc_room_status", {
+                sessionId,
+                participants,
+                ready: participants > 1,
+                existingPeers, // Send list of existing peers so new joiner can connect to them
+                oderId: socket.userId // Send the user their own ID
+            });
+        });
+
+        // Leave WebRTC room
+        socket.on("webrtc_leave_session", ({ sessionId }) => {
+            const room = `webrtc:${sessionId}`;
+            socket.leave(room);
+            socket.to(room).emit("webrtc_peer_left", { oderId: socket.userId });
+            console.log(`User ${socket.userId} left WebRTC room ${room}`);
+        });
+
+        // Signal that user is ready (camera started)
+        socket.on("webrtc_ready", ({ sessionId, role }) => {
+            const room = `webrtc:${sessionId}`;
+            socket.to(room).emit("webrtc_peer_ready", {
+                oderId: socket.userId,
+                role
+            });
+        });
+
+        // Forward WebRTC offer to a specific user or room
+        socket.on("webrtc_offer", ({ sessionId, to, sdp }) => {
+            if (to) {
+                console.log(`WebRTC offer from ${socket.userId} to user ${to}`);
+                io.to(`user:${to}`).emit("webrtc_offer", { from: socket.userId, sdp });
+            } else if (sessionId) {
+                const room = `webrtc:${sessionId}`;
+                console.log(`WebRTC offer from ${socket.userId} to room ${room}`);
+                socket.to(room).emit("webrtc_offer", { from: socket.userId, sdp });
+            }
+        });
+
+        // Forward WebRTC answer to a specific user
+        socket.on("webrtc_answer", ({ to, sdp }) => {
+            console.log(`WebRTC answer from ${socket.userId} to ${to}`);
+            io.to(`user:${to}`).emit("webrtc_answer", { from: socket.userId, sdp });
+        });
+
+        // Forward ICE candidates
+        socket.on("webrtc_ice_candidate", ({ sessionId, to, candidate }) => {
+            if (to) {
+                // Send to specific user
+                io.to(`user:${to}`).emit("webrtc_ice_candidate", { from: socket.userId, candidate });
+            } else if (sessionId) {
+                // Broadcast to room
+                const room = `webrtc:${sessionId}`;
+                socket.to(room).emit("webrtc_ice_candidate", { from: socket.userId, candidate });
+            }
+        });
+
+        // Organizer calls all team members in the session
+        socket.on("webrtc_call_team", ({ sessionId }) => {
+            const room = `webrtc:${sessionId}`;
+            console.log(`WebRTC call from organizer ${socket.userId} to room ${room}`);
+            // Send incoming call to all participants except the caller (no SDP - participants will create offers)
+            socket.to(room).emit("webrtc_incoming_call", { from: socket.userId });
+        });
+
+        // Participant answers the call
+        socket.on("webrtc_answer_call", ({ sessionId, to, sdp }) => {
+            const room = `webrtc:${sessionId}`;
+            console.log(`WebRTC answer from ${socket.userId} to ${to} for session ${sessionId}`);
+
+            // Send answer to the organizer who called
+            io.to(`user:${to}`).emit("webrtc_answer", { from: socket.userId, sdp });
+
+            // Notify others in room that the call was answered (so they don't see the ring anymore)
+            socket.to(room).emit("webrtc_call_answered", { oderId: socket.userId });
+        });
+
+        // End call notification
+        socket.on("webrtc_end_call", ({ sessionId }) => {
+            const room = `webrtc:${sessionId}`;
+            console.log(`WebRTC call ended by ${socket.userId} in room ${room}`);
+            socket.to(room).emit("webrtc_call_ended", { oderId: socket.userId });
+        });
+
+        // Handle renegotiation when tracks are added after connection
+        socket.on("webrtc_renegotiate", ({ sessionId, sdp }) => {
+            const room = `webrtc:${sessionId}`;
+            console.log(`WebRTC renegotiation offer from ${socket.userId}`);
+            socket.to(room).emit("webrtc_renegotiate", { from: socket.userId, sdp });
+        });
+
+        // Handle renegotiation answer
+        socket.on("webrtc_renegotiate_answer", ({ sessionId, to, sdp }) => {
+            console.log(`WebRTC renegotiation answer from ${socket.userId} to ${to}`);
+            io.to(`user:${to}`).emit("webrtc_renegotiate_answer", { from: socket.userId, sdp });
+        });
+
+        // Screen share notifications - broadcast to all in room
+        socket.on("webrtc_screen_share_started", ({ sessionId, userName }) => {
+            const room = `webrtc:${sessionId}`;
+            const name = userName || socket.user?.name || "Someone";
+            console.log(`Screen share started by ${socket.userId} (${name}) in room ${room}`);
+            socket.to(room).emit("webrtc_screen_share_started", { 
+                oderId: socket.userId, 
+                name
+            });
+        });
+
+        socket.on("webrtc_screen_share_stopped", ({ sessionId }) => {
+            const room = `webrtc:${sessionId}`;
+            console.log(`Screen share stopped by ${socket.userId} in room ${room}`);
+            socket.to(room).emit("webrtc_screen_share_stopped", { 
+                oderId: socket.userId 
+            });
         });
 
         socket.on("disconnect", () => {
@@ -235,8 +392,8 @@ const emitNotification = (userId, notification) => {
     }
 };
 
-module.exports = { 
-    initializeSocket, 
+module.exports = {
+    initializeSocket,
     emitRoleUpdate,
     emitHackathonUpdate,
     emitTeamUpdate,

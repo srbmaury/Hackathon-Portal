@@ -244,14 +244,64 @@ describe("HackathonItem", () => {
         expect(viewDetailsButton).toBeInTheDocument();
     });
 
-    test("shows edit button for hackathon_creator role", () => {
+    test("shows edit/delete buttons for admin user", () => {
         renderWithContext(
             <HackathonItem hackathon={hackathon} onEdit={mockOnEdit} onDelete={mockOnDelete} />,
-            { user: { role: "hackathon_creator" } }
+            { user: { role: "admin", _id: "admin1" } }
         );
 
         expect(screen.getByText("hackathon.edit")).toBeInTheDocument();
         expect(screen.getByText("hackathon.delete")).toBeInTheDocument();
+    });
+
+    test("shows edit/delete buttons for user with organizer role in hackathon", () => {
+        const hackathonWithOrganizerRole = { ...hackathon, myRole: "organizer" };
+        renderWithContext(
+            <HackathonItem hackathon={hackathonWithOrganizerRole} onEdit={mockOnEdit} onDelete={mockOnDelete} />,
+            { user: { role: "user", _id: "user1" } }
+        );
+
+        expect(screen.getByText("hackathon.edit")).toBeInTheDocument();
+        expect(screen.getByText("hackathon.delete")).toBeInTheDocument();
+    });
+
+    test("does not show edit/delete buttons for user with judge role in hackathon", () => {
+        const hackathonWithJudgeRole = { ...hackathon, myRole: "judge" };
+        registrationsApi.getMyTeam.mockRejectedValueOnce({ response: { status: 404 } });
+
+        renderWithContext(
+            <HackathonItem hackathon={hackathonWithJudgeRole} onEdit={mockOnEdit} onDelete={mockOnDelete} />,
+            { user: { role: "user", _id: "user1" } }
+        );
+
+        expect(screen.queryByRole("button", { name: /^hackathon\.edit$/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /^hackathon\.delete$/i })).not.toBeInTheDocument();
+    });
+
+    test("does not show edit/delete buttons for user with participant role in hackathon", () => {
+        const hackathonWithParticipantRole = { ...hackathon, myRole: "participant" };
+        registrationsApi.getMyTeam.mockRejectedValueOnce({ response: { status: 404 } });
+
+        renderWithContext(
+            <HackathonItem hackathon={hackathonWithParticipantRole} onEdit={mockOnEdit} onDelete={mockOnDelete} />,
+            { user: { role: "user", _id: "user1" } }
+        );
+
+        expect(screen.queryByRole("button", { name: /^hackathon\.edit$/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /^hackathon\.delete$/i })).not.toBeInTheDocument();
+    });
+
+    test("does not show edit/delete buttons for regular user without hackathon role", () => {
+        const hackathonWithNoRole = { ...hackathon, myRole: null };
+        registrationsApi.getMyTeam.mockRejectedValueOnce({ response: { status: 404 } });
+
+        renderWithContext(
+            <HackathonItem hackathon={hackathonWithNoRole} onEdit={mockOnEdit} onDelete={mockOnDelete} />,
+            { user: { role: "user", _id: "user1" } }
+        );
+
+        expect(screen.queryByRole("button", { name: /^hackathon\.edit$/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /^hackathon\.delete$/i })).not.toBeInTheDocument();
     });
 
     test("handles team fetch error gracefully", async () => {

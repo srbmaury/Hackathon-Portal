@@ -7,14 +7,30 @@ describe('API config', () => {
   });
 
   it('should include Accept-Language header from i18n', async () => {
-    // Mock i18n.language
     i18n.language = 'te';
-    const config = await API.interceptors.request.handlers[0].fulfilled({ headers: {} });
+
+    const config = await API.interceptors.request.handlers[0].fulfilled({
+      headers: {},
+    });
+
     expect(config.headers['Accept-Language']).toBe('te');
+  });
+
+  it('should fallback to "en" when i18n.language is not set', async () => {
+    i18n.language = undefined;
+
+    const config = await API.interceptors.request.handlers[0].fulfilled({
+      headers: {},
+    });
+
+    expect(config.headers['Accept-Language']).toBe('en');
   });
 
   it('should reject on request interceptor error', async () => {
     const error = new Error('Interceptor error');
-    await expect(API.interceptors.request.handlers[0].rejected(error)).rejects.toThrow('Interceptor error');
+
+    await expect(
+      API.interceptors.request.handlers[0].rejected(error)
+    ).rejects.toThrow('Interceptor error');
   });
 });

@@ -36,6 +36,7 @@ import MembersTab from "../components/hackathons/MembersTab";
 import AnnouncementsTab from "../components/hackathons/AnnouncementsTab";
 import TeamsTab from "../components/hackathons/TeamsTab";
 import HackathonRegisterModal from "../components/teams/HackathonRegisterModal";
+import DemoStagePage from "./DemoStagePage";
 
 import { getSocket } from "../services/socket";
 
@@ -92,6 +93,7 @@ const HackathonDetailsPage = () => {
         // Calculate tab indices based on whether user has a role
         const announcementsTabIndex = myRole ? 2 : 1; // After Overview, and Members (if exists)
         const teamsTabIndex = myRole ? 3 : 2; // After Announcements
+        const demoStageTabIndex = myRole ? 4 : 3; // After Teams
 
         if (myRole && activeTab === 1) {
             // Members tab (only visible when user has a role)
@@ -104,6 +106,9 @@ const HackathonDetailsPage = () => {
             loadAnnouncements();
         } else if (activeTab === teamsTabIndex) {
             // Teams tab
+            loadTeams();
+        } else if (activeTab === demoStageTabIndex) {
+            // Demo Stage tab
             loadTeams();
         }
     }, [activeTab, myRole]);
@@ -420,6 +425,12 @@ const HackathonDetailsPage = () => {
                                 myTeam={myTeam}
                                 myRole={myRole}
                             />
+                        )}
+
+                    {/* Demo Stage Tab */}
+                    {((myRole && activeTab === 4) ||
+                        (!myRole && activeTab === 3)) && (
+                            <DemoStagePage hackathonId={id} myRole={myRole} teams={teams} />
                         )}
                 </Box>
 
