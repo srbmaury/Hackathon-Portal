@@ -23,12 +23,27 @@ A comprehensive platform for managing hackathons, teams, ideas, and participants
 - **Automated Reminders**: Smart deadline reminders for at-risk teams and submission deadline notifications
 
 ### Live AI-Powered Demo Day Stage
-- **Virtual Stage**: Real-time, interactive virtual stage where teams present projects to judges, mentors, and the public.
-- **Live Video Demo**: Each team gets a timed slot with a live video stream (WebRTC or integrated service like Daily/Zoom).
-- **Live Q&A**: Audience and judges submit live questions, filtered and summarized by an AI assistant in real time.
-- **AI Feedback & Buzzwords**: AI generates instant feedback and “buzzwords” (e.g., “Most Innovative”, “Best Pitch”, “Crowd Favorite”) based on sentiment analysis and engagement.
-- **Live Voting & Leaderboard**: Viewers can vote/react live; leaderboard updates in real time.
-- **AI Highlights Reel**: After each demo, AI generates a short, shareable summary and highlights reel for social media.
+**Virtual Stage**: Real-time, interactive virtual stage where teams present projects to judges, mentors, and the public.
+**Live Video Demo**: Each team gets a timed slot with a live video stream (WebRTC or integrated service like Daily/Zoom).
+**Live Q&A**: Audience and judges submit live questions, filtered and summarized by an AI assistant in real time.
+**AI Feedback & Buzzwords**: AI generates instant feedback and "buzzwords" (e.g., "Most Innovative", "Best Pitch", "Crowd Favorite") based on sentiment analysis and engagement.
+**Live Voting & Leaderboard**: Viewers can vote/react live; leaderboard updates in real time.
+**AI Highlights Reel**: After each demo, AI generates a short, shareable summary and highlights reel for social media.
+**Full Internationalization**: Complete i18n support for all WebRTC and Demo Stage UI elements in English, Hindi, and Telugu.
+
+#### Demo Recording & Playback
+
+- **Live Recording**: Organizers and judges can record live demo sessions (camera, screen, or both) using integrated WebRTC technology.
+- **Recording Controls**: Start/stop recording, pause/resume, mute/unmute, start/stop camera, and start/stop screen sharing during the session.
+- **Live Captions**: Real-time transcription during recording using Web Speech API.
+- **Video Trimming**: Basic trim functionality before uploading recordings.
+- **Preview & Upload**: After recording, preview the video, download, discard, or upload/share it directly to the platform.
+- **Draft/Public Video Visibility**: Organizers can save demo videos as "draft" (visible only to organizers/judges) and make them "public" when ready. Only public videos are visible to participants; organizers can toggle visibility at any time.
+- **Session Video Storage**: Uploaded recordings are saved and linked to each session (stored in the backend via the `videoUrl` and `videoVisibility` fields in the DemoSession model).
+- **Playback Support**: All users can play back uploaded or linked recordings, with support for YouTube, Vimeo, Loom, and Cloudinary videos.
+- **Role-based Access**: Only organizers/judges can record and upload demo videos; participants can view and play public videos.
+- **Integrated Experience**: All recording and playback features are seamlessly integrated into the DemoStage page and virtual stage workflow.
+- **Full i18n Support**: All WebRTC controls, dialogs, and messages are fully translated in English, Hindi, and Telugu.
 
 ### Role System
 - **Organization-Level Roles**:
@@ -477,6 +492,17 @@ The application supports multiple languages:
 Translation files are located in:
 - Backend: `backend/locales/`
 - Frontend: `frontend/src/i18n/`
+
+### Translation Coverage
+All UI elements are fully translated including:
+- Authentication & Dashboard
+- Hackathon Management & Rounds
+- Team Registration & Chat
+- Ideas & Submissions
+- Announcements & Notifications
+- User Management & Profiles
+- **Demo Stage** - AI scheduling, session management, video visibility
+- **WebRTC** - Camera/screen controls, recording, transcription, playback
 
 ## 🔒 Security
 
