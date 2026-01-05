@@ -98,10 +98,16 @@ describe("AnnouncementItem component", () => {
   });
 
   test("opens edit mode when edit button is clicked", () => {
-    renderComponent();
-    const editButton = screen.getByTestId("EditIcon").closest("button");
+    renderComponent({ hackathonId, myRole });
+    const editIcon = screen.queryByTestId("EditIcon");
+    if (!editIcon) {
+      // Print DOM for debugging
+      // eslint-disable-next-line no-console
+      console.log(screen.debug());
+    }
+    expect(editIcon).toBeInTheDocument();
+    const editButton = editIcon.closest("button");
     fireEvent.click(editButton);
-
     expect(screen.getByDisplayValue("Test Announcement")).toBeInTheDocument();
     expect(screen.getByText("announcement.update")).toBeInTheDocument();
     expect(screen.getByText("announcement.cancel")).toBeInTheDocument();
@@ -109,15 +115,17 @@ describe("AnnouncementItem component", () => {
 
   test("calls updateAnnouncement API for general announcement", async () => {
     announcementApi.updateAnnouncement.mockResolvedValue({});
-    renderComponent({ hackathonId: null });
-
-    fireEvent.click(screen.getByTestId("EditIcon").closest("button"));
-
+    renderComponent({ hackathonId: null, myRole: "organizer" });
+    const editIcon = screen.queryByTestId("EditIcon");
+    if (!editIcon) {
+      // eslint-disable-next-line no-console
+      console.log(screen.debug());
+    }
+    expect(editIcon).toBeInTheDocument();
+    fireEvent.click(editIcon.closest("button"));
     const titleInput = screen.getByDisplayValue("Test Announcement");
     fireEvent.change(titleInput, { target: { value: "Updated Title" } });
-
     fireEvent.click(screen.getByText("announcement.update"));
-
     await waitFor(() => {
       expect(announcementApi.updateAnnouncement).toHaveBeenCalledWith(
         "1",
@@ -151,27 +159,28 @@ describe("AnnouncementItem component", () => {
   });
 
   test("opens delete confirmation dialog and emits websocket delete event", async () => {
-    renderComponent({ onDeleted: vi.fn() });
-
-    fireEvent.click(screen.getByTestId("DeleteIcon").closest("button"));
+    renderComponent({ hackathonId, myRole, onDeleted: vi.fn() });
+    const deleteIcon = screen.queryByTestId("DeleteIcon");
+    if (!deleteIcon) {
+      // eslint-disable-next-line no-console
+      console.log(screen.debug());
+    }
+    expect(deleteIcon).toBeInTheDocument();
+    fireEvent.click(deleteIcon.closest("button"));
     expect(screen.getByText("announcement.confirm_delete")).toBeInTheDocument();
-
     // Set up mock for websocket success event
     mockSocket.on.mockImplementation((event, handler) => {
       if (event === "announcement_deleted") {
-        // Simulate success response
         setTimeout(() => {
           handler({ announcementId: "1" });
         }, 100);
       }
     });
-
     fireEvent.click(screen.getByText("announcement.delete"));
-
     await waitFor(() => {
       expect(mockSocket.emit).toHaveBeenCalledWith("delete_announcement", {
         announcementId: "1",
-        hackathonId: null,
+        hackathonId,
       });
     }, { timeout: 2000 });
   });
@@ -203,11 +212,15 @@ describe("AnnouncementItem component", () => {
     announcementApi.updateAnnouncement.mockRejectedValue({
       response: { data: { message: "Failed!" } }
     });
-    renderComponent({ hackathonId: null });
-
-    fireEvent.click(screen.getByTestId("EditIcon").closest("button"));
+    renderComponent({ hackathonId: null, myRole: "organizer" });
+    const editIcon = screen.queryByTestId("EditIcon");
+    if (!editIcon) {
+      // eslint-disable-next-line no-console
+      console.log(screen.debug());
+    }
+    expect(editIcon).toBeInTheDocument();
+    fireEvent.click(editIcon.closest("button"));
     fireEvent.click(screen.getByText("announcement.update"));
-
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith("Failed!");
     });
@@ -215,26 +228,27 @@ describe("AnnouncementItem component", () => {
 
   test("shows error toast on websocket delete failure", async () => {
     mockSocket.connected = true;
-    renderComponent({ onDeleted: vi.fn() });
-
-    fireEvent.click(screen.getByTestId("DeleteIcon").closest("button"));
-
+    renderComponent({ hackathonId, myRole, onDeleted: vi.fn() });
+    const deleteIcon = screen.queryByTestId("DeleteIcon");
+    if (!deleteIcon) {
+      // eslint-disable-next-line no-console
+      console.log(screen.debug());
+    }
+    expect(deleteIcon).toBeInTheDocument();
+    fireEvent.click(deleteIcon.closest("button"));
     // Set up mock for websocket error event
     mockSocket.on.mockImplementation((event, handler) => {
       if (event === "announcement_delete_error") {
-        // Simulate error response
         setTimeout(() => {
           handler({ announcementId: "1", error: "Delete Failed!" });
         }, 100);
       }
     });
-
     fireEvent.click(screen.getByText("announcement.delete"));
-
     await waitFor(() => {
       expect(mockSocket.emit).toHaveBeenCalledWith("delete_announcement", {
         announcementId: "1",
-        hackathonId: null,
+        hackathonId,
       });
     }, { timeout: 2000 });
   });

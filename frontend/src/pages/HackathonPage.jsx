@@ -45,6 +45,7 @@ const HackathonPage = () => {
     };
 
     useEffect(() => {
+        if (!token) return;
         fetchHackathons();
     }, [token]);
 
@@ -157,7 +158,7 @@ const HackathonPage = () => {
         }, 100);
     };
 
-    const canCreateHackathon = user.role === "admin" || user.role === "hackathon_creator";
+    const canCreateHackathon = user && (user.role === "admin" || user.role === "hackathon_creator");
 
     return (
         <DashboardLayout>

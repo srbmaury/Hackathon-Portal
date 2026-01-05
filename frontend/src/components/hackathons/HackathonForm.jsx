@@ -35,7 +35,7 @@ const HackathonForm = ({ onSubmit, initialData, onCancel }) => {
     const [title, setTitle] = useState(initialData?.title || "");
     const [description, setDescription] = useState(initialData?.description || "");
     const [isActive, setIsActive] = useState(initialData?.isActive ?? false);
-    const [minimumTeamSize, setMinimumTeamSize] = useState(initialData?.mnimumTeamSize || initialData?.minimumTeamSize || 1);
+    const [minimumTeamSize, setMinimumTeamSize] = useState(initialData?.minimumTeamSize || initialData?.minimumTeamSize || 1);
     const [maximumTeamSize, setMaximumTeamSize] = useState(initialData?.maximumTeamSize || 5);
     const [rounds, setRounds] = useState(initialData?.rounds || []);
     const [formatting, setFormatting] = useState(false);
@@ -45,21 +45,21 @@ const HackathonForm = ({ onSubmit, initialData, onCancel }) => {
         setTitle(initialData?.title || "");
         setDescription(initialData?.description || "");
         setIsActive(initialData?.isActive ?? false);
-        setMinimumTeamSize(initialData?.mnimumTeamSize || initialData?.minimumTeamSize || 1);
+        setMinimumTeamSize(initialData?.minimumTeamSize || initialData?.minimumTeamSize || 1);
         setMaximumTeamSize(initialData?.maximumTeamSize || 5);
         setRounds(initialData?.rounds || []);
     }, [initialData]);
 
     const handleAddRound = async (useAI = false) => {
         const newRound = { name: "", description: "", startDate: "", endDate: "", isActive: false, hideScores: false };
-        
+
         if (useAI && title.trim()) {
             try {
                 setSuggestingRound(rounds.length);
                 const roundNumber = rounds.length + 1;
                 const existingRounds = rounds.map((r, idx) => ({ name: r.name, roundNumber: idx + 1 }));
                 const result = await suggestRound(title, description, roundNumber, existingRounds, null, token);
-                
+
                 if (result.round) {
                     newRound.name = result.round.name || "";
                     newRound.description = result.round.description || "";
@@ -76,7 +76,7 @@ const HackathonForm = ({ onSubmit, initialData, onCancel }) => {
                 setSuggestingRound(null);
             }
         }
-        
+
         setRounds([...rounds, newRound]);
     };
 
@@ -113,7 +113,7 @@ const HackathonForm = ({ onSubmit, initialData, onCancel }) => {
 
     const handleSubmit = async () => {
         if (!title || !description) return toast.error(t("hackathon.all_fields_required"));
-        
+
         // Validate team size
         if (minimumTeamSize < 1) {
             return toast.error(t("hackathon.min_team_size_invalid") || "Minimum team size must be at least 1");
@@ -136,7 +136,7 @@ const HackathonForm = ({ onSubmit, initialData, onCancel }) => {
             title: title.trim(),
             description: description.trim(),
             isActive,
-            mnimumTeamSize: minimumTeamSize,
+            minimumTeamSize: minimumTeamSize,
             maximumTeamSize: maximumTeamSize,
             rounds: formattedRounds,
         };
@@ -184,7 +184,7 @@ const HackathonForm = ({ onSubmit, initialData, onCancel }) => {
                         {formatting ? t("hackathon.formatting") : t("hackathon.format_with_ai")}
                     </Button>
                 </Box>
-                
+
                 <div data-color-mode={colorScheme}>
                     <Typography variant="subtitle1" sx={{ mb: 1 }}>
                         {t("hackathon.description")}
@@ -267,7 +267,7 @@ const HackathonForm = ({ onSubmit, initialData, onCancel }) => {
                                             const roundNumber = index + 1;
                                             const existingRounds = rounds.map((r, idx) => ({ name: r.name, roundNumber: idx + 1 }));
                                             const result = await suggestRound(title, description, roundNumber, existingRounds, null, token);
-                                            
+
                                             if (result.round) {
                                                 handleRoundChange(index, "name", result.round.name || "");
                                                 handleRoundChange(index, "description", result.round.description || "");
@@ -353,14 +353,14 @@ const HackathonForm = ({ onSubmit, initialData, onCancel }) => {
                 ))}
 
                 <Stack direction="row" spacing={2}>
-                    <Button 
-                        startIcon={<Add />} 
+                    <Button
+                        startIcon={<Add />}
                         onClick={() => handleAddRound(false)}
                         variant="outlined"
                     >
                         {t("hackathon.add_round")}
                     </Button>
-                    <Button 
+                    <Button
                         startIcon={suggestingRound === rounds.length ? <CircularProgress size={16} /> : <AutoAwesome />}
                         onClick={() => handleAddRound(true)}
                         variant="contained"
@@ -373,14 +373,14 @@ const HackathonForm = ({ onSubmit, initialData, onCancel }) => {
                 </Stack>
 
                 <Stack direction="row" spacing={2} sx={{ alignSelf: "flex-start" }}>
-                <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={handleSubmit}
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={handleSubmit}
                         sx={{ px: 4 }}
-                >
-                    {initialData ? t("hackathon.update") : t("hackathon.create")}
-                </Button>
+                    >
+                        {initialData ? t("hackathon.update") : t("hackathon.create")}
+                    </Button>
                     {onCancel && (
                         <Button
                             variant="outlined"

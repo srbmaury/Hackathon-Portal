@@ -2,8 +2,9 @@ import React from "react";
 import { Box, useTheme } from "@mui/material";
 import MDEditor from "@uiw/react-md-editor";
 
-const MarkdownViewer = ({ content, colorScheme = "light" }) => {
+const MarkdownViewer = ({ content }) => {
     const theme = useTheme();
+    const colorScheme = theme.palette.mode;
 
     return (
         <Box

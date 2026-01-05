@@ -12,6 +12,7 @@ import {
 } from "@mui/icons-material";
 import toast from "react-hot-toast";
 import { initializeSocket } from "../services/socket";
+import { uploadDemoVideo } from "../api/demoStage";
 
 const ICE_SERVERS = [
     { urls: "stun:stun.l.google.com:19302" },
@@ -36,7 +37,7 @@ const WebRTCStreamRecorder = ({ sessionId, token, myRole, onVideoUploaded, userN
     // Track who is screen sharing (userId or 'local')
     const screenSharerIdRef = useRef(null);
     // Track camera streams we've received from each peer (to distinguish from screen share)
-    const knownCameraStreamsRef = useRef({}); // {oderId: Set of stream IDs}
+    const knownCameraStreamsRef = useRef({}); // {peerId: Set of stream IDs}
     // Speech recognition for transcription (Web Speech API)
     const recognitionRef = useRef(null);
     // Track if we've already joined this session to prevent duplicate join events
@@ -50,7 +51,7 @@ const WebRTCStreamRecorder = ({ sessionId, token, myRole, onVideoUploaded, userN
     const [localScreenStream, setLocalScreenStream] = useState(null);
     const [remoteScreenStream, setRemoteScreenStream] = useState(null);
     const [screenSharerInfo, setScreenSharerInfo] = useState(null); // {id, name, isLocal}
-    const [remoteCameraStreams, setRemoteCameraStreams] = useState({}); // {oderId: stream}
+    const [remoteCameraStreams, setRemoteCameraStreams] = useState({}); // {peerId: stream}
     const [peerInfo, setPeerInfo] = useState({});
     const [recordedBlob, setRecordedBlob] = useState(null);
     const [recording, setRecording] = useState(false);
@@ -271,13 +272,13 @@ const WebRTCStreamRecorder = ({ sessionId, token, myRole, onVideoUploaded, userN
             return pc;
         };
 
-        const sendOffer = async (oderId, peerName) => {
-            const pc = createPC(oderId, peerName);
+        const sendOffer = async (peerId, peerName) => {
+            const pc = createPC(peerId, peerName);
             try {
                 const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
                 await pc.setLocalDescription(offer);
-                socket.emit("webrtc_offer", { sessionId, to: oderId, sdp: offer });
-                console.log("Sent offer to:", oderId);
+                socket.emit("webrtc_offer", { sessionId, to: peerId, sdp: offer });
+                console.log("Sent offer to:", peerId);
             } catch (err) {
                 console.error("Error sending offer:", err);
             }
@@ -299,40 +300,40 @@ const WebRTCStreamRecorder = ({ sessionId, token, myRole, onVideoUploaded, userN
 
             if (existingPeers?.length > 0) {
                 existingPeers.forEach(peer => {
-                    setPeerInfo(prev => ({ ...prev, [peer.oderId]: { name: peer.name, role: peer.role } }));
-                    peerInfoRef.current[peer.oderId] = { name: peer.name, role: peer.role };
-                    sendOffer(peer.oderId, peer.name);
+                    setPeerInfo(prev => ({ ...prev, [peer.peerId]: { name: peer.name, role: peer.role } }));
+                    peerInfoRef.current[peer.peerId] = { name: peer.name, role: peer.role };
+                    sendOffer(peer.peerId, peer.name);
                 });
             }
         });
 
-        socket.on("webrtc_peer_joined", ({ oderId, role, name }) => {
-            console.log("Peer joined:", oderId, name);
+        socket.on("webrtc_peer_joined", ({ peerId, role, name }) => {
+            console.log("Peer joined:", peerId, name);
             setParticipantsInRoom(prev => prev + 1);
-            setPeerInfo(prev => ({ ...prev, [oderId]: { name: name || "Participant", role } }));
-            peerInfoRef.current[oderId] = { name: name || "Participant", role };
+            setPeerInfo(prev => ({ ...prev, [peerId]: { name: name || "Participant", role } }));
+            peerInfoRef.current[peerId] = { name: name || "Participant", role };
             toast.success(`${name || t("webrtc.someone")} ${t("webrtc.joined")}`);
         });
 
-        socket.on("webrtc_peer_left", ({ oderId }) => {
-            console.log("Peer left:", oderId);
-            const leavingPeer = peerInfoRef.current[oderId];
+        socket.on("webrtc_peer_left", ({ peerId }) => {
+            console.log("Peer left:", peerId);
+            const leavingPeer = peerInfoRef.current[peerId];
             setParticipantsInRoom(prev => Math.max(0, prev - 1));
 
-            if (peerConnectionsRef.current[oderId]) {
-                peerConnectionsRef.current[oderId].close();
-                delete peerConnectionsRef.current[oderId];
+            if (peerConnectionsRef.current[peerId]) {
+                peerConnectionsRef.current[peerId].close();
+                delete peerConnectionsRef.current[peerId];
             }
-            delete knownCameraStreamsRef.current[oderId];
+            delete knownCameraStreamsRef.current[peerId];
 
             setRemoteCameraStreams(prev => {
                 const n = { ...prev };
-                delete n[oderId];
+                delete n[peerId];
                 return n;
             });
 
             // If they were screen sharing, clear it
-            if (screenSharerIdRef.current === oderId) {
+            if (screenSharerIdRef.current === peerId) {
                 screenSharerIdRef.current = null;
                 setRemoteScreenStream(null);
                 setScreenSharerInfo(null);
@@ -341,10 +342,10 @@ const WebRTCStreamRecorder = ({ sessionId, token, myRole, onVideoUploaded, userN
 
             setPeerInfo(prev => {
                 const n = { ...prev };
-                delete n[oderId];
+                delete n[peerId];
                 return n;
             });
-            delete peerInfoRef.current[oderId];
+            delete peerInfoRef.current[peerId];
 
             if (leavingPeer?.name) toast.info(`${leavingPeer.name} ${t("webrtc.left")}`);
         });
@@ -418,16 +419,16 @@ const WebRTCStreamRecorder = ({ sessionId, token, myRole, onVideoUploaded, userN
         });
 
         // Screen share notifications - IMPORTANT: set this BEFORE tracks arrive
-        socket.on("webrtc_screen_share_started", ({ oderId, name }) => {
-            console.log("!!! Screen share started by:", oderId, name);
-            screenSharerIdRef.current = oderId;
-            setScreenSharerInfo({ id: oderId, name: name || t("webrtc.someone"), isLocal: false });
+        socket.on("webrtc_screen_share_started", ({ peerId, name }) => {
+            console.log("!!! Screen share started by:", peerId, name);
+            screenSharerIdRef.current = peerId;
+            setScreenSharerInfo({ id: peerId, name: name || t("webrtc.someone"), isLocal: false });
             toast.info(`📺 ${name || t("webrtc.someone")} ${t("webrtc.started_presenting")}`);
         });
 
-        socket.on("webrtc_screen_share_stopped", ({ oderId }) => {
-            console.log("!!! Screen share stopped by:", oderId);
-            if (screenSharerIdRef.current === oderId) {
+        socket.on("webrtc_screen_share_stopped", ({ peerId }) => {
+            console.log("!!! Screen share stopped by:", peerId);
+            if (screenSharerIdRef.current === peerId) {
                 screenSharerIdRef.current = null;
                 setRemoteScreenStream(null);
                 setScreenSharerInfo(null);
@@ -456,23 +457,23 @@ const WebRTCStreamRecorder = ({ sessionId, token, myRole, onVideoUploaded, userN
 
             if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token, sessionId, isOrganizer, userName]);
 
     // Renegotiate with all peers when adding new tracks
     const renegotiateAllPeers = useCallback(async () => {
         console.log("Renegotiating with all peers...");
-        for (const [oderId, pc] of Object.entries(peerConnectionsRef.current)) {
+        for (const [peerId, pc] of Object.entries(peerConnectionsRef.current)) {
             if (!pc || pc.connectionState === "closed") continue;
             try {
                 if (pc.signalingState === "stable") {
                     const offer = await pc.createOffer();
                     await pc.setLocalDescription(offer);
-                    socketRef.current?.emit("webrtc_renegotiate", { sessionId, to: oderId, sdp: offer });
-                    console.log("Sent renegotiation to:", oderId);
+                    socketRef.current?.emit("webrtc_renegotiate", { sessionId, to: peerId, sdp: offer });
+                    console.log("Sent renegotiation to:", peerId);
                 }
             } catch (e) {
-                console.error("Renegotiate error with", oderId, e);
+                console.error("Renegotiate error with", peerId, e);
             }
         }
     }, [sessionId]);
@@ -669,7 +670,6 @@ const WebRTCStreamRecorder = ({ sessionId, token, myRole, onVideoUploaded, userN
             const recorder = new MediaRecorder(streamToRecord, { mimeType: mimeTypeRef.current });
 
             recorder.ondataavailable = (e) => {
-                console.log("Recording chunk:", e.data.size, "bytes");
                 if (e.data.size > 0) {
                     recordingChunksRef.current.push(e.data);
                 }
@@ -769,25 +769,8 @@ const WebRTCStreamRecorder = ({ sessionId, token, myRole, onVideoUploaded, userN
         if (!recordedBlob) return;
         setUploading(true);
         try {
-            // Create a new blob with simple video/webm type (without codec suffix)
             const uploadBlob = new Blob([recordedBlob], { type: 'video/webm' });
-
-            const formData = new FormData();
-            formData.append("video", uploadBlob, "recording.webm");
-            formData.append("sessionId", sessionId);
-
-            console.log("Uploading video:", uploadBlob.size, "bytes, type:", uploadBlob.type);
-
-            const res = await fetch("/api/demo-stage/upload-video", {
-                method: "POST",
-                headers: { Authorization: `Bearer ${token}` },
-                body: formData,
-            });
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({ error: "Upload failed" }));
-                throw new Error(errorData.error || "Upload failed");
-            }
-            const data = await res.json();
+            const data = await uploadDemoVideo({ token, sessionId, blob: uploadBlob });
             console.log("Upload successful:", data);
             toast.success(t("webrtc.uploaded"));
             if (onVideoUploaded) onVideoUploaded(data);
@@ -861,11 +844,11 @@ const WebRTCStreamRecorder = ({ sessionId, token, myRole, onVideoUploaded, userN
     const remoteCameraEntries = Object.entries(remoteCameraStreams);
     const hasStreamToRecord = hasScreenShare || !!localCameraStream;
 
-    const setRemoteVideoRef = useCallback((oderId, el) => {
+    const setRemoteVideoRef = useCallback((peerId, el) => {
         if (el) {
-            remoteVideoRefs.current[oderId] = el;
-            if (remoteCameraStreams[oderId]) {
-                el.srcObject = remoteCameraStreams[oderId];
+            remoteVideoRefs.current[peerId] = el;
+            if (remoteCameraStreams[peerId]) {
+                el.srcObject = remoteCameraStreams[peerId];
             }
         }
     }, [remoteCameraStreams]);
@@ -942,12 +925,12 @@ const WebRTCStreamRecorder = ({ sessionId, token, myRole, onVideoUploaded, userN
                 </Grid>
 
                 {/* Remote cameras */}
-                {remoteCameraEntries.map(([oderId]) => (
-                    <Grid item key={oderId}>
+                {remoteCameraEntries.map(([peerId]) => (
+                    <Grid item key={peerId}>
                         <Box sx={{ textAlign: "center" }}>
-                            <Typography variant="caption" display="block" mb={0.5}>{peerInfo[oderId]?.name || t("webrtc.participant")}</Typography>
+                            <Typography variant="caption" display="block" mb={0.5}>{peerInfo[peerId]?.name || t("webrtc.participant")}</Typography>
                             <Box sx={{ width: 160, height: 120, bgcolor: "#000", borderRadius: 1, overflow: "hidden", border: "2px solid #2196f3" }}>
-                                <video ref={(el) => setRemoteVideoRef(oderId, el)} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                <video ref={(el) => setRemoteVideoRef(peerId, el)} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                             </Box>
                         </Box>
                     </Grid>

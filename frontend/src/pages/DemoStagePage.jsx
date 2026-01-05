@@ -22,11 +22,20 @@ import {
     Switch,
     FormControlLabel
 } from "@mui/material";
-import { Add as AddIcon, PlayArrow as PlayIcon, VideoCall as VideoIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import { Add as AddIcon, VideoCall as VideoIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
-import API from "../api/apiConfig";
+import {
+    editDemoSession,
+    aiGenerateSchedulePreview,
+    aiConfirmSchedule,
+    fetchDemoSessions,
+    createDemoSession,
+    editDemoSessionVideo,
+    deleteDemoSession,
+    changeDemoSessionStage
+} from "../api/demoStage";
 import WebRTCStreamRecorder from "./WebRTCStreamRecorder";
 
 
@@ -80,14 +89,13 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
     const handleSaveEditSession = async () => {
         if (!editSessionData) return;
         try {
-            await API.patch(`/demo-stage/sessions/${editSessionData._id}`,
-                {
-                    startTime: editSessionData.startTime,
-                    endTime: editSessionData.endTime,
-                    round: editSessionData.round?._id || editSessionData.round,
-                },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+            await editDemoSession({
+                token,
+                sessionId: editSessionData._id,
+                startTime: editSessionData.startTime,
+                endTime: editSessionData.endTime,
+                round: editSessionData.round?._id || editSessionData.round,
+            });
             toast.success(t("demo_stage.session_updated"));
             setShowEditSessionDialog(false);
             setEditSessionData(null);
@@ -160,11 +168,12 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
         }
         setAILoading(true);
         try {
-            const res = await API.post(
-                "/demo-stage/sessions/ai-generate-preview",
-                { hackathonId, roundId: aiSelectedRound, prompt: aiPrompt },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+            const res = await aiGenerateSchedulePreview({
+                token,
+                hackathonId,
+                roundId: aiSelectedRound,
+                prompt: aiPrompt
+            });
             setAISchedulePreview(res.data.schedule || []);
             setAIStep(2);
         } catch (err) {
@@ -177,11 +186,12 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
     const handleAIConfirmSchedule = async () => {
         setAILoading(true);
         try {
-            await API.post(
-                "/demo-stage/sessions/ai-generate-confirm",
-                { hackathonId, roundId: aiSelectedRound, schedule: aiSchedulePreview },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+            await aiConfirmSchedule({
+                token,
+                hackathonId,
+                roundId: aiSelectedRound,
+                schedule: aiSchedulePreview
+            });
             toast.success(t("demo_stage.sessions_scheduled"));
             setShowAIScheduleDialog(false);
             setAISchedulePreview([]);
@@ -201,9 +211,7 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
         if (!hackathonId) return;
         setLoading(true);
         try {
-            const res = await API.get(`/demo-stage/sessions/${hackathonId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            const res = await fetchDemoSessions({ token, hackathonId });
             setSessions(res.data);
         } catch {
             setSessions([]);
@@ -248,9 +256,7 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
                 endTime: endTime || undefined,
                 videoUrl: videoUrl || undefined,
             };
-            await API.post("/demo-stage/sessions", payload, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            await createDemoSession({ token, payload });
             toast.success(t("demo_stage.session_created"));
             setShowCreateDialog(false);
             setSelectedTeam("");
@@ -277,10 +283,12 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
         if (!editingSession) return;
         setSavingVideo(true);
         try {
-            await API.patch(`/demo-stage/sessions/${editingSession._id}`,
-                { videoUrl: editVideoUrl, videoVisibility: editVideoVisibility },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+            await editDemoSessionVideo({
+                token,
+                sessionId: editingSession._id,
+                videoUrl: editVideoUrl,
+                videoVisibility: editVideoVisibility
+            });
             toast.success(t("demo_stage.video_updated"));
             setShowVideoDialog(false);
             setEditingSession(null);
@@ -297,7 +305,7 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
     const handleDeleteSession = async (sessionId) => {
         if (!window.confirm(t("demo_stage.delete_confirm"))) return;
         try {
-            await API.delete(`/demo-stage/sessions/${sessionId}`, { headers: { Authorization: `Bearer ${token}` } });
+            await deleteDemoSession({ token, sessionId });
             toast.success(t("demo_stage.session_deleted"));
             fetchSessions();
         } catch (err) {
@@ -333,7 +341,7 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
     // Handler to update session stage
     const handleStageChange = async (sessionId, newStage) => {
         try {
-            await API.patch(`/demo-stage/sessions/${sessionId}`, { stage: newStage }, { headers: { Authorization: `Bearer ${token}` } });
+            await changeDemoSessionStage({ token, sessionId, stage: newStage });
             fetchSessions();
             toast.success(t("demo_stage.status_updated"));
         } catch (err) {

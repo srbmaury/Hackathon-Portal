@@ -31,6 +31,7 @@ vi.mock("../../services/socket", () => ({
 }));
 
 // Test component to consume context
+const validId = "0123456789abcdef01234567";
 const TestComponent = () => {
     const {
         notifications,
@@ -49,9 +50,9 @@ const TestComponent = () => {
             <span data-testid="unread-count">{unreadCount}</span>
             <span data-testid="notification-count">{notifications.length}</span>
             <button onClick={fetchNotifications}>Fetch</button>
-            <button onClick={() => markAsRead("notif1")}>Mark Read</button>
+            <button value={validId} onClick={() => markAsRead(validId)}>Mark Read</button>
             <button onClick={markAllAsRead}>Mark All Read</button>
-            <button onClick={() => removeNotification("notif1")}>Remove</button>
+            <button value={validId} onClick={() => removeNotification(validId)}>Remove</button>
             <button onClick={refreshUnreadCount}>Refresh Count</button>
         </div>
     );
@@ -95,12 +96,12 @@ describe("NotificationContext", () => {
 
     it("initializes with default values", async () => {
         renderWithProviders();
-        
+
         // Wait for initial fetch to complete
         await waitFor(() => {
             expect(screen.getByTestId("loading")).toHaveTextContent("not-loading");
         }, { timeout: 3000 });
-        
+
         expect(screen.getByTestId("unread-count")).toHaveTextContent("0");
         expect(screen.getByTestId("notification-count")).toHaveTextContent("0");
     });
@@ -115,7 +116,7 @@ describe("NotificationContext", () => {
         renderWithProviders();
 
         const fetchBtn = screen.getByText("Fetch");
-        
+
         fireEvent.click(fetchBtn);
 
         await waitFor(() => {
@@ -126,7 +127,7 @@ describe("NotificationContext", () => {
     });
 
     it("handles fetch notifications error", async () => {
-        const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+        const consoleError = vi.spyOn(console, "error").mockImplementation(() => { });
         notificationApi.getNotifications.mockRejectedValue(new Error("Fetch failed"));
 
         renderWithProviders();
@@ -157,8 +158,9 @@ describe("NotificationContext", () => {
     });
 
     it("marks notification as read", async () => {
+        const validId = "0123456789abcdef01234567";
         const mockNotifications = [
-            { _id: "notif1", message: "Test notification", read: false },
+            { _id: validId, message: "Test notification", read: false },
         ];
         notificationApi.getNotifications.mockResolvedValue({ notifications: mockNotifications, unreadCount: 1 });
         notificationApi.markNotificationAsRead.mockResolvedValue({ success: true });
@@ -173,10 +175,15 @@ describe("NotificationContext", () => {
         }, { timeout: 3000 });
 
         // Then mark as read
-        fireEvent.click(screen.getByText("Mark Read"));
+        // Update the button to use the validId
+        const markReadBtn = screen.getByText("Mark Read");
+        markReadBtn.onclick = () => { };
+        markReadBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        // Simulate click with validId
+        fireEvent.click(markReadBtn, { target: { value: validId } });
 
         await waitFor(() => {
-            expect(notificationApi.markNotificationAsRead).toHaveBeenCalledWith("notif1", mockToken);
+            expect(notificationApi.markNotificationAsRead).toHaveBeenCalledWith(validId, mockToken);
         }, { timeout: 3000 });
     });
 
@@ -193,8 +200,9 @@ describe("NotificationContext", () => {
     });
 
     it("removes notification", async () => {
+        const validId = "0123456789abcdef01234567";
         const mockNotifications = [
-            { _id: "notif1", message: "Test notification", read: false },
+            { _id: validId, message: "Test notification", read: false },
         ];
         notificationApi.getNotifications.mockResolvedValue({ notifications: mockNotifications, unreadCount: 1 });
         notificationApi.deleteNotification.mockResolvedValue({ success: true });
@@ -209,10 +217,15 @@ describe("NotificationContext", () => {
         }, { timeout: 3000 });
 
         // Then remove
-        fireEvent.click(screen.getByText("Remove"));
+        // Update the button to use the validId
+        const removeBtn = screen.getByText("Remove");
+        removeBtn.onclick = () => { };
+        removeBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        // Simulate click with validId
+        fireEvent.click(removeBtn, { target: { value: validId } });
 
         await waitFor(() => {
-            expect(notificationApi.deleteNotification).toHaveBeenCalledWith("notif1", mockToken);
+            expect(notificationApi.deleteNotification).toHaveBeenCalledWith(validId, mockToken);
         }, { timeout: 3000 });
     });
 

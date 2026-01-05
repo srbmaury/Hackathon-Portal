@@ -9,6 +9,7 @@ import {
     Stack,
     Typography,
 } from "@mui/material";
+import { AuthContext } from "../../context/AuthContext";
 
 // ------------------ TRIE IMPLEMENTATION ------------------
 class TrieNode {
@@ -46,8 +47,6 @@ class Trie {
     }
 }
 // ----------------------------------------------------------
-
-import { AuthContext } from "../../context/AuthContext";
 
 const MemberSearchPicker = ({ users, selectedIds = [], onChange, maxTeamSize = null }) => {
     const auth = useContext(AuthContext) || {};

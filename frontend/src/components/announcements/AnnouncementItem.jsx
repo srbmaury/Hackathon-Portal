@@ -49,17 +49,16 @@ const AnnouncementItem = ({ announcement, user, onUpdated, hackathonId, myRole }
     // For general announcements, only the creator can edit/delete
     const isAdmin = user.role === "admin";
     const isHackathonOrganizer = myRole === "organizer";
-    const isHackathonAnnouncement = !!hackathonId;
-    const canEdit = isAdmin || (isHackathonAnnouncement && isHackathonOrganizer) || (!isHackathonAnnouncement && user.role === "organizer" && announcement.createdBy?._id === user._id);
-    const canDelete = isAdmin || (isHackathonAnnouncement && isHackathonOrganizer) || (!isHackathonAnnouncement && user.role === "organizer" && announcement.createdBy?._id === user._id);
-    
+    const canEdit = isAdmin || (isHackathonOrganizer && announcement.createdBy?._id === user._id);
+    const canDelete = isAdmin || (isHackathonOrganizer && announcement.createdBy?._id === user._id);
+
     // Determine color scheme based on theme
     const colorScheme = theme.palette.mode === "dark" ? "dark" : "light";
 
     // Delete using websocket
     const handleDelete = () => {
         const socket = getSocket();
-        
+
         // Check if socket exists and is connected
         if (!socket) {
             toast.error(t("announcement.websocket_not_connected") || "WebSocket not initialized. Please refresh the page.");
@@ -71,7 +70,7 @@ const AnnouncementItem = ({ announcement, user, onUpdated, hackathonId, myRole }
         if (!socket.connected) {
             // Try to connect if not connected
             socket.connect();
-            
+
             // Wait for connection with timeout
             const connectionTimeout = setTimeout(() => {
                 if (!socket.connected) {
@@ -125,7 +124,7 @@ const AnnouncementItem = ({ announcement, user, onUpdated, hackathonId, myRole }
                     setDeleting(false);
                     setConfirmOpen(false);
                     toast.success(t("announcement.announcement_deleted"));
-                    
+
                     // Don't call onDeleted callback here - the WebSocket listener in AnnouncementList
                     // will handle the list update automatically to avoid duplicate updates
                 }
@@ -253,12 +252,12 @@ const AnnouncementItem = ({ announcement, user, onUpdated, hackathonId, myRole }
                     <Box>
                         {canEdit && (
                             <IconButton size="small" sx={{ color: "white" }} onClick={() => setEditing(true)}>
-                                <EditIcon />
+                                <EditIcon data-testid="EditIcon" />
                             </IconButton>
                         )}
                         {canDelete && (
                             <IconButton size="small" sx={{ color: "white" }} onClick={() => setConfirmOpen(true)}>
-                                <DeleteIcon />
+                                <DeleteIcon data-testid="DeleteIcon" />
                             </IconButton>
                         )}
                     </Box>
@@ -286,8 +285,8 @@ const AnnouncementItem = ({ announcement, user, onUpdated, hackathonId, myRole }
                     <Button onClick={() => setConfirmOpen(false)} disabled={deleting}>
                         {t("announcement.cancel")}
                     </Button>
-                    <Button 
-                        color="error" 
+                    <Button
+                        color="error"
                         onClick={handleDelete}
                         disabled={deleting}
                         startIcon={deleting ? <CircularProgress size={16} /> : null}
