@@ -241,7 +241,7 @@ const HackathonRegisterModal = ({ open, onClose, hackathon, team }) => {
             return { min: 1, max: 5 }; // defaults
         }
         return {
-            min: hackathon.mnimumTeamSize || hackathon.minimumTeamSize || 1,
+            min: hackathon.minimumTeamSize || hackathon.minimumTeamSize || 1,
             max: hackathon.maximumTeamSize || 5,
         };
     };

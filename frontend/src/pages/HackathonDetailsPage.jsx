@@ -253,7 +253,7 @@ const HackathonDetailsPage = () => {
                 getMyTeam(id, token).catch(() => ({ team: null })), // Gracefully handle if no team
             ]);
             setHackathon(hackathonData.hackathon);
-            setMyRole(roleData.hasRole ? roleData.role : null);
+            setMyRole(roleData.hasRole ? roleData.role : (user.role === "admin" ? "admin" : false));
             setMyTeam(teamData.team || null);
         } catch (error) {
             console.error("Error loading hackathon:", error);

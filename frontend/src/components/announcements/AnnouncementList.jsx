@@ -34,7 +34,7 @@ const AnnouncementList = forwardRef((props, ref) => {
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
     const limit = 10;
-    
+
     const { t } = useTranslation();
     const { user, token } = useContext(AuthContext);
 
@@ -75,7 +75,7 @@ const AnnouncementList = forwardRef((props, ref) => {
     // Set up WebSocket listeners for real-time updates
     useEffect(() => {
         const socket = getSocket();
-        
+
         if (!socket) {
             return;
         }
@@ -87,15 +87,15 @@ const AnnouncementList = forwardRef((props, ref) => {
                 const filtered = prevAnnouncements.filter(
                     (announcement) => announcement._id !== data.announcementId
                 );
-                
+
                 // If we're on a page that becomes empty, go to previous page
                 if (filtered.length === 0 && page > 1) {
                     setPage(page - 1);
                 }
-                
+
                 return filtered;
             });
-            
+
             // Update total count
             setTotal((prevTotal) => Math.max(0, prevTotal - 1));
         };
@@ -202,7 +202,7 @@ const AnnouncementList = forwardRef((props, ref) => {
                         user={user}
                         onUpdated={(updates) => handleAnnouncementUpdated(announcement._id, updates)}
                         hackathonId={announcement.hackathon?._id || null}
-                        myRole={null} // General announcements don't have hackathon-specific roles
+                        myRole={props?.myRole}
                     />
                 ))}
             </Box>

@@ -6,6 +6,7 @@ const Hackathon = require("./models/Hackathon");
 const Team = require("./models/Team");
 const Idea = require("./models/Idea");
 const HackathonRole = require("./models/HackathonRole");
+const Round = require("./models/Round");
 
 dotenv.config();
 
@@ -47,7 +48,7 @@ const seedData = async () => {
         // Create users for Organization 1 (9 users)
         console.log("👥 Creating users for Tech Corp...");
         const org1Users = [];
-        
+
         // Admin for Org1
         const org1Admin = await User.create({
             name: "Alice Admin",
@@ -147,7 +148,7 @@ const seedData = async () => {
         // Create users for Organization 2 (15 users to ensure enough for 2 teams)
         console.log("👥 Creating users for Innovation Labs...");
         const org2Users = [];
-        
+
         // Admin for Org2
         const org2Admin = await User.create({
             name: "Isaac Admin",
@@ -276,6 +277,24 @@ const seedData = async () => {
 
         // Hackathon 1 for Organization 1
         console.log("\n📌 Creating Hackathon 1 for Tech Corp");
+        const rounds1 = await Round.create([
+            {
+                name: "Ideation Round",
+                description: "Submit your initial idea and problem statement",
+                startDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+                endDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+                isActive: true,
+                hideScores: true,
+            },
+            {
+                name: "Final Presentation",
+                description: "Present your final solution and demo",
+                startDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+                endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+                isActive: true,
+                hideScores: false,
+            },
+        ]);
         const hackathon1 = await Hackathon.create({
             title: "Tech Corp Innovation Challenge 2025",
             description: "Annual innovation hackathon for Tech Corp to develop cutting-edge solutions for customer problems.",
@@ -284,6 +303,7 @@ const seedData = async () => {
             maximumTeamSize: 5,
             organization: org1._id,
             createdBy: org1Creator._id,
+            rounds: rounds1.map(r => r._id),
         });
 
         // Assign roles for Hackathon 1
@@ -329,6 +349,24 @@ const seedData = async () => {
 
         // Hackathon 2 for Organization 2
         console.log("\n📌 Creating Hackathon 2 for Innovation Labs");
+        const rounds2 = await Round.create([
+            {
+                name: "Prototype Development",
+                description: "Develop and submit your prototype or MVP",
+                startDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+                endDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000),
+                isActive: true,
+                hideScores: true,
+            },
+            {
+                name: "Demo Day",
+                description: "Showcase your AI-powered solution to judges",
+                startDate: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000),
+                endDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+                isActive: true,
+                hideScores: false,
+            },
+        ]);
         const hackathon2 = await Hackathon.create({
             title: "Innovation Labs AI Revolution",
             description: "Build AI-powered solutions that will transform industries and create meaningful impact.",
@@ -337,6 +375,7 @@ const seedData = async () => {
             maximumTeamSize: 5,
             organization: org2._id,
             createdBy: org2Creator1._id,
+            rounds: rounds2.map(r => r._id),
         });
 
         // Assign roles for Hackathon 2
@@ -414,6 +453,24 @@ const seedData = async () => {
 
         // Hackathon 3 for Organization 2
         console.log("\n📌 Creating Hackathon 3 for Innovation Labs");
+        const rounds3 = await Round.create([
+            {
+                name: "Green Ideation",
+                description: "Brainstorm sustainable tech ideas",
+                startDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
+                endDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+                isActive: true,
+                hideScores: true,
+            },
+            {
+                name: "Green Demo",
+                description: "Present your green tech solution",
+                startDate: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000),
+                endDate: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000),
+                isActive: true,
+                hideScores: false,
+            },
+        ]);
         const hackathon3 = await Hackathon.create({
             title: "Innovation Labs Green Tech Summit",
             description: "Create sustainable technology solutions for environmental challenges and climate change.",
@@ -422,6 +479,7 @@ const seedData = async () => {
             maximumTeamSize: 4,
             organization: org2._id,
             createdBy: org2Creator2._id,
+            rounds: rounds3.map(r => r._id),
         });
 
         // Assign roles for Hackathon 3
@@ -540,11 +598,11 @@ const seedData = async () => {
         console.log(`\n🏢 ORGANIZATIONS CREATED: 2`);
         console.log(`   1. Tech Corp (${org1Users.length} users, 1 hackathon)`);
         console.log(`   2. Innovation Labs (${org2Users.length} users, 2 hackathons)`);
-        
+
         console.log(`\n👥 TOTAL USERS: ${org1Users.length + org2Users.length}`);
         console.log(`   - Tech Corp: ${org1Users.length} users`);
         console.log(`   - Innovation Labs: ${org2Users.length} users`);
-        
+
         console.log(`\n🏆 HACKATHONS CREATED: 3`);
         console.log(`   1. ${hackathon1.title}`);
         console.log(`      Organization: Tech Corp`);
@@ -556,15 +614,15 @@ const seedData = async () => {
         console.log(`\n   3. ${hackathon3.title}`);
         console.log(`      Organization: Innovation Labs`);
         console.log(`      Roles: 1 Organizer, 1 Mentor, 1 Judge, 2 Participants`);
-        
+
         console.log(`\n👥 TEAMS CREATED: 2`);
         console.log(`   1. AI Healthcare Innovators (4 members) - Hackathon 2`);
         console.log(`   2. Smart City Engineers (4 members) - Hackathon 2`);
-        
+
         console.log(`\n💡 IDEAS CREATED: 4`);
         console.log(`   - 2 hackathon-specific ideas`);
         console.log(`   - 2 public ideas`);
-        
+
         console.log("\n─────────────────────────────────────────────");
         console.log("\n🔑 KEY ACCOUNTS:");
         console.log(`\nOrg 1 Admin: ${org1Admin.email}`);
@@ -572,7 +630,7 @@ const seedData = async () => {
         console.log(`Org 2 Admin: ${org2Admin.email}`);
         console.log(`Org 2 Creator 1: ${org2Creator1.email}`);
         console.log(`Org 2 Creator 2: ${org2Creator2.email}`);
-        
+
         console.log("\n─────────────────────────────────────────────");
         console.log("\n📋 USER IDs FOR TEST LOGIN:");
         console.log("\n🏢 TECH CORP USERS:");
@@ -584,7 +642,7 @@ const seedData = async () => {
             console.log(`\n   ${user.name} (${user.role})`);
             console.log(`   ID: ${user._id}`);
         });
-        
+
         console.log("\n\n🏢 INNOVATION LABS USERS:");
         console.log(`   ${org2Admin.name} (${org2Admin.role})`);
         console.log(`   ID: ${org2Admin._id}`);
@@ -596,7 +654,7 @@ const seedData = async () => {
             console.log(`\n   ${user.name} (${user.role})`);
             console.log(`   ID: ${user._id}`);
         });
-        
+
         console.log("\n─────────────────────────────────────────────");
         console.log("\n🎯 ALL HACKATHON ROLES ASSIGNED:");
         console.log("   ✓ Organizers");

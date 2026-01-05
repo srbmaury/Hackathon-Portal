@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { getHackathonById } from "../api/hackathons";
 import { useParams } from "react-router-dom";
 import {
     Box,
@@ -17,14 +18,26 @@ import {
     InputLabel,
     Select,
     MenuItem,
-    Alert
+    Alert,
+    Switch,
+    FormControlLabel
 } from "@mui/material";
-import { Add as AddIcon, PlayArrow as PlayIcon, VideoCall as VideoIcon, Edit as EditIcon } from "@mui/icons-material";
+import { Add as AddIcon, VideoCall as VideoIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
-import API from "../api/apiConfig";
+import {
+    editDemoSession,
+    aiGenerateSchedulePreview,
+    aiConfirmSchedule,
+    fetchDemoSessions,
+    createDemoSession,
+    editDemoSessionVideo,
+    deleteDemoSession,
+    changeDemoSessionStage
+} from "../api/demoStage";
 import WebRTCStreamRecorder from "./WebRTCStreamRecorder";
+
 
 const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => {
     const { hackathonId: paramHackathonId } = useParams();
@@ -34,6 +47,8 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
     const [sessions, setSessions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeSession, setActiveSession] = useState(null);
+    const [rounds, setRounds] = useState([]);
+    const [selectedRound, setSelectedRound] = useState("");
 
     // Session creation state
     const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -44,27 +59,159 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
     const [creating, setCreating] = useState(false);
 
     // Edit video dialog state
-    const [showVideoDialog, setShowVideoDialog] = useState(false);
     const [editingSession, setEditingSession] = useState(null);
+    const [showVideoDialog, setShowVideoDialog] = useState(false);
     const [editVideoUrl, setEditVideoUrl] = useState("");
+    const [editVideoVisibility, setEditVideoVisibility] = useState("draft");
     const [savingVideo, setSavingVideo] = useState(false);
+
+    // AI scheduling dialog state (must be inside component)
+    const [showAIScheduleDialog, setShowAIScheduleDialog] = useState(false);
+    const [aiPrompt, setAIPrompt] = useState("");
+    const [aiSelectedRound, setAISelectedRound] = useState("");
+    const [aiSchedulePreview, setAISchedulePreview] = useState([]);
+    const [aiLoading, setAILoading] = useState(false);
+    const [aiStep, setAIStep] = useState(1); // 1: prompt, 2: preview
+
+    // Edit session dialog state
+    const [showEditSessionDialog, setShowEditSessionDialog] = useState(false);
+    const [editSessionData, setEditSessionData] = useState(null);
+
+    const handleOpenEditSessionDialog = (session) => {
+        setEditSessionData({ ...session });
+        setShowEditSessionDialog(true);
+    };
+
+    const handleEditSessionChange = (field, value) => {
+        setEditSessionData((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const handleSaveEditSession = async () => {
+        if (!editSessionData) return;
+        try {
+            await editDemoSession({
+                token,
+                sessionId: editSessionData._id,
+                startTime: editSessionData.startTime,
+                endTime: editSessionData.endTime,
+                round: editSessionData.round?._id || editSessionData.round,
+            });
+            toast.success(t("demo_stage.session_updated"));
+            setShowEditSessionDialog(false);
+            setEditSessionData(null);
+            fetchSessions();
+        } catch (err) {
+            toast.error(err.response?.data?.error || t("demo_stage.session_update_failed"));
+        }
+    };
+
 
     // Judges have the same access as organizers
     const isOrganizer = myRole === "organizer" || myRole === "judge" || user?.role === "admin";
 
-    // Get teams that don't have a session yet
-    const availableTeams = teams.filter(
-        (team) => !sessions.some((s) => s.team?._id === team._id)
-    );
+    // Filter state
+    const [participantFilter, setParticipantFilter] = useState("all"); // 'all' or 'mine'
+    const [organizerStage, setOrganizerStage] = useState("all"); // 'all', 'scheduled', 'live', 'completed'
+
+    // Helper: is user a member of a team?
+    function isUserTeamMember(team) {
+        if (!user?._id || !team?.members) return false;
+        return team.members.some(m => String(m._id || m) === String(user._id));
+    }
+
+    // Filtered sessions for display
+    let filteredSessions = sessions;
+    if (!isOrganizer) {
+        // Participant: filter by all/mine
+        if (participantFilter === "mine") {
+            filteredSessions = sessions.filter(s => isUserTeamMember(s.team));
+        }
+    } else {
+        // Organizer: filter by stage
+        if (["scheduled", "live", "completed"].includes(organizerStage)) {
+            filteredSessions = sessions.filter(s => s.stage === organizerStage);
+        }
+    }
+
+    // Get teams that don't have a session for the selected round
+    const availableTeams = teams.filter((team) => {
+        if (!selectedRound) return true;
+        return !sessions.some((s) => s.team?._id === team._id && s.round?._id === selectedRound);
+    });
+
+    // Helper to format ISO string to local datetime-local input value (YYYY-MM-DDTHH:mm)
+    function formatLocalDateTime(isoString) {
+        if (!isoString) return "";
+        const d = new Date(isoString);
+        const pad = n => n.toString().padStart(2, '0');
+        const yyyy = d.getFullYear();
+        const mm = pad(d.getMonth() + 1);
+        const dd = pad(d.getDate());
+        const hh = pad(d.getHours());
+        const min = pad(d.getMinutes());
+        return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+    }
+
+    // AI scheduling handlers (must be inside component)
+    const handleOpenAIScheduleDialog = () => {
+        setShowAIScheduleDialog(true);
+        setAIPrompt("");
+        setAISelectedRound("");
+        setAISchedulePreview([]);
+        setAIStep(1);
+    };
+
+    const handleAIGeneratePreview = async () => {
+        if (!aiPrompt || !aiSelectedRound) {
+            toast.error(t("demo_stage.ai_prompt_required"));
+            return;
+        }
+        setAILoading(true);
+        try {
+            const res = await aiGenerateSchedulePreview({
+                token,
+                hackathonId,
+                roundId: aiSelectedRound,
+                prompt: aiPrompt
+            });
+            setAISchedulePreview(res.data.schedule || []);
+            setAIStep(2);
+        } catch (err) {
+            toast.error(err.response?.data?.error || t("demo_stage.ai_generate_failed"));
+        } finally {
+            setAILoading(false);
+        }
+    };
+
+    const handleAIConfirmSchedule = async () => {
+        setAILoading(true);
+        try {
+            await aiConfirmSchedule({
+                token,
+                hackathonId,
+                roundId: aiSelectedRound,
+                schedule: aiSchedulePreview
+            });
+            toast.success(t("demo_stage.sessions_scheduled"));
+            setShowAIScheduleDialog(false);
+            setAISchedulePreview([]);
+            setAIPrompt("");
+            setAISelectedRound("");
+            setAIStep(1);
+            fetchSessions();
+        } catch (err) {
+            toast.error(err.response?.data?.error || t("demo_stage.sessions_create_failed"));
+        } finally {
+            setAILoading(false);
+        }
+    };
 
     // Fetch demo sessions
     const fetchSessions = useCallback(async () => {
         if (!hackathonId) return;
         setLoading(true);
         try {
-            const res = await API.get(`/demo-stage/sessions/${hackathonId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            const res = await fetchDemoSessions({ token, hackathonId });
             setSessions(res.data);
         } catch {
             setSessions([]);
@@ -76,9 +223,27 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
         fetchSessions();
     }, [fetchSessions]);
 
+    // Fetch rounds for the hackathon
+    useEffect(() => {
+        const fetchRounds = async () => {
+            if (!hackathonId) return;
+            try {
+                const data = await getHackathonById(hackathonId, token);
+                setRounds(data.hackathon?.rounds || data.rounds || []);
+            } catch {
+                setRounds([]);
+            }
+        };
+        fetchRounds();
+    }, [hackathonId, token]);
+
     const handleCreateSession = async () => {
         if (!selectedTeam) {
             toast.error(t("demo_stage.select_team_required"));
+            return;
+        }
+        if (!selectedRound) {
+            toast.error(t("demo_stage.round_required"));
             return;
         }
         setCreating(true);
@@ -86,16 +251,16 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
             const payload = {
                 hackathon: hackathonId,
                 team: selectedTeam,
+                round: selectedRound,
                 startTime: startTime || undefined,
                 endTime: endTime || undefined,
                 videoUrl: videoUrl || undefined,
             };
-            await API.post("/demo-stage/sessions", payload, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            await createDemoSession({ token, payload });
             toast.success(t("demo_stage.session_created"));
             setShowCreateDialog(false);
             setSelectedTeam("");
+            setSelectedRound("");
             setStartTime("");
             setEndTime("");
             setVideoUrl("");
@@ -110,6 +275,7 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
     const handleOpenVideoDialog = (session) => {
         setEditingSession(session);
         setEditVideoUrl(session.videoUrl || "");
+        setEditVideoVisibility(session.videoVisibility || "draft");
         setShowVideoDialog(true);
     };
 
@@ -117,19 +283,33 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
         if (!editingSession) return;
         setSavingVideo(true);
         try {
-            await API.patch(`/demo-stage/sessions/${editingSession._id}`,
-                { videoUrl: editVideoUrl },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            toast.success(t("demo_stage.video_saved"));
+            await editDemoSessionVideo({
+                token,
+                sessionId: editingSession._id,
+                videoUrl: editVideoUrl,
+                videoVisibility: editVideoVisibility
+            });
+            toast.success(t("demo_stage.video_updated"));
             setShowVideoDialog(false);
             setEditingSession(null);
             setEditVideoUrl("");
+            setEditVideoVisibility("draft");
             fetchSessions();
         } catch {
-            toast.error(t("demo_stage.video_save_failed"));
+            toast.error(t("demo_stage.video_update_failed"));
         } finally {
             setSavingVideo(false);
+        }
+    };
+
+    const handleDeleteSession = async (sessionId) => {
+        if (!window.confirm(t("demo_stage.delete_confirm"))) return;
+        try {
+            await deleteDemoSession({ token, sessionId });
+            toast.success(t("demo_stage.session_deleted"));
+            fetchSessions();
+        } catch (err) {
+            toast.error(err.response?.data?.error || t("demo_stage.session_delete_failed"));
         }
     };
 
@@ -152,22 +332,21 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
         return null;
     };
 
-    const handleSetLive = async (sessionId) => {
-        try {
-            await API.patch(`/demo-stage/sessions/${sessionId}/status`,
-                { status: "live" },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            toast.success(t("demo_stage.session_now_live"));
-            fetchSessions();
-        } catch {
-            toast.error(t("demo_stage.status_update_failed"));
-        }
-    };
 
     const formatDateTime = (dateStr) => {
         if (!dateStr) return "";
         return new Date(dateStr).toLocaleString();
+    };
+
+    // Handler to update session stage
+    const handleStageChange = async (sessionId, newStage) => {
+        try {
+            await changeDemoSessionStage({ token, sessionId, stage: newStage });
+            fetchSessions();
+            toast.success(t("demo_stage.status_updated"));
+        } catch (err) {
+            toast.error(err.response?.data?.error || t("demo_stage.status_update_failed"));
+        }
     };
 
     if (loading) {
@@ -184,19 +363,161 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
                 <Typography variant="h5" fontWeight={600}>
                     {t("demo_stage.live_demo_day")}
                 </Typography>
-                {isOrganizer && (
-                    <Button
-                        variant="contained"
-                        startIcon={<AddIcon />}
-                        onClick={() => setShowCreateDialog(true)}
-                        disabled={availableTeams.length === 0}
-                    >
-                        {t("demo_stage.schedule_session")}
-                    </Button>
-                )}
+                <Stack direction="row" spacing={2} alignItems="center">
+                    {/* Filters */}
+                    {!isOrganizer && (
+                        <FormControl size="small">
+                            <Select value={participantFilter} onChange={e => setParticipantFilter(e.target.value)}>
+                                <MenuItem value="all">{t("demo_stage.filter_all")}</MenuItem>
+                                <MenuItem value="mine">{t("demo_stage.filter_mine")}</MenuItem>
+                            </Select>
+                        </FormControl>
+                    )}
+                    {isOrganizer && (
+                        <FormControl size="small">
+                            <Select value={organizerStage} onChange={e => setOrganizerStage(e.target.value)}>
+                                <MenuItem value="all">{t("demo_stage.stage_all")}</MenuItem>
+                                <MenuItem value="scheduled">{t("demo_stage.stage_scheduled")}</MenuItem>
+                                <MenuItem value="live">{t("demo_stage.stage_live")}</MenuItem>
+                                <MenuItem value="completed">{t("demo_stage.stage_completed")}</MenuItem>
+                            </Select>
+                        </FormControl>
+                    )}
+                    {isOrganizer && (
+                        <>
+                            <Button
+                                variant="contained"
+                                startIcon={<AddIcon />}
+                                onClick={() => setShowCreateDialog(true)}
+                                disabled={availableTeams.length === 0}
+                            >
+                                {t("demo_stage.schedule_session")}
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                startIcon={<AddIcon />}
+                                onClick={handleOpenAIScheduleDialog}
+                            >
+                                {t("demo_stage.ai_schedule")}
+                            </Button>
+                        </>
+                    )}
+                </Stack>
+                {/* AI Schedule Dialog */}
+                <Dialog open={showAIScheduleDialog} onClose={() => setShowAIScheduleDialog(false)} maxWidth="md" fullWidth>
+                    <DialogTitle>{t("demo_stage.ai_scheduling_title")}</DialogTitle>
+                    <DialogContent>
+                        {aiStep === 1 && (
+                            <Stack spacing={3} sx={{ mt: 1 }}>
+                                <FormControl fullWidth required>
+                                    <InputLabel>{t("demo_stage.round")}</InputLabel>
+                                    <Select
+                                        value={aiSelectedRound}
+                                        onChange={(e) => setAISelectedRound(e.target.value)}
+                                        label={t("demo_stage.round")}
+                                    >
+                                        {rounds.map((round) => (
+                                            <MenuItem key={round._id || round.id} value={round._id || round.id}>
+                                                {round.name || t("demo_stage.round")}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                <TextField
+                                    label={t("demo_stage.scheduling_prompt")}
+                                    value={aiPrompt}
+                                    onChange={(e) => setAIPrompt(e.target.value)}
+                                    placeholder={t("demo_stage.scheduling_prompt_placeholder")}
+                                    multiline
+                                    minRows={3}
+                                    fullWidth
+                                />
+                            </Stack>
+                        )}
+                        {aiStep === 2 && (
+                            <Box>
+                                <Typography variant="subtitle1" sx={{ mb: 2 }}>{t("demo_stage.schedule_preview")}</Typography>
+                                <Box sx={{ overflowX: "auto" }}>
+                                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                                        <thead>
+                                            <tr>
+                                                <th style={{ borderBottom: "1px solid #ccc", padding: 8 }}>{t("demo_stage.th_team")}</th>
+                                                <th style={{ borderBottom: "1px solid #ccc", padding: 8 }}>{t("demo_stage.th_round")}</th>
+                                                <th style={{ borderBottom: "1px solid #ccc", padding: 8 }}>{t("demo_stage.th_start_time")}</th>
+                                                <th style={{ borderBottom: "1px solid #ccc", padding: 8 }}>{t("demo_stage.th_end_time")}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {aiSchedulePreview.map((row, idx) => (
+                                                <tr key={idx}>
+                                                    <td style={{ borderBottom: "1px solid #eee", padding: 8 }}>{row.team?.name}</td>
+                                                    <td style={{ borderBottom: "1px solid #eee", padding: 8 }}>{row.round?.name}</td>
+                                                    <td style={{ borderBottom: "1px solid #eee", padding: 8 }}>
+                                                        <TextField
+                                                            type="datetime-local"
+                                                            value={row.startTime ? formatLocalDateTime(row.startTime) : ""}
+                                                            onChange={e => {
+                                                                const newVal = e.target.value;
+                                                                // Save as ISO string
+                                                                setAISchedulePreview(prev => prev.map((r, i) => i === idx ? { ...r, startTime: new Date(newVal).toISOString() } : r));
+                                                            }}
+                                                            size="small"
+                                                            InputLabelProps={{ shrink: true }}
+                                                        />
+                                                    </td>
+                                                    <td style={{ borderBottom: "1px solid #eee", padding: 8 }}>
+                                                        <TextField
+                                                            type="datetime-local"
+                                                            value={row.endTime ? formatLocalDateTime(row.endTime) : ""}
+                                                            onChange={e => {
+                                                                const newVal = e.target.value;
+                                                                setAISchedulePreview(prev => prev.map((r, i) => i === idx ? { ...r, endTime: new Date(newVal).toISOString() } : r));
+                                                            }}
+                                                            size="small"
+                                                            InputLabelProps={{ shrink: true }}
+                                                        />
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </Box>
+                            </Box>
+                        )}
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setShowAIScheduleDialog(false)}>{t("common.cancel")}</Button>
+                        {aiStep === 1 && (
+                            <Button
+                                variant="contained"
+                                onClick={handleAIGeneratePreview}
+                                disabled={aiLoading || !aiPrompt || !aiSelectedRound}
+                            >
+                                {aiLoading ? t("common.loading") : t("demo_stage.generate_schedule")}
+                            </Button>
+                        )}
+                        {aiStep === 2 && (
+                            <Button
+                                variant="contained"
+                                onClick={handleAIConfirmSchedule}
+                                disabled={aiLoading || aiSchedulePreview.length === 0}
+                            >
+                                {aiLoading ? t("common.loading") : t("demo_stage.confirm_schedule")}
+                            </Button>
+                        )}
+                        {aiStep === 2 && (
+                            <Button
+                                onClick={() => setAIStep(1)}
+                                disabled={aiLoading}
+                            >
+                                {t("common.back")}
+                            </Button>
+                        )}
+                    </DialogActions>
+                </Dialog>
             </Stack>
 
-            {sessions.length === 0 ? (
+            {filteredSessions.length === 0 ? (
                 <Paper sx={{ p: 4, textAlign: "center" }}>
                     <Typography color="text.secondary" mb={2}>
                         {t("demo_stage.no_sessions")}
@@ -218,7 +539,7 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
                 </Paper>
             ) : (
                 <Stack spacing={2}>
-                    {sessions.map((session) => (
+                    {filteredSessions.map((session) => (
                         <Paper
                             key={session._id}
                             sx={{
@@ -231,26 +552,23 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
                                 <Typography variant="h6" sx={{ flexGrow: 1 }}>
                                     {session.team?.name || t("demo_stage.unknown_team")}
                                 </Typography>
-                                <Chip
-                                    label={session.status || "scheduled"}
-                                    color={session.status === "live" ? "success" : session.status === "completed" ? "default" : "warning"}
-                                    size="small"
-                                />
                                 {session.startTime && (
                                     <Typography variant="body2" color="text.secondary">
                                         {formatDateTime(session.startTime)}
                                     </Typography>
                                 )}
-                                {isOrganizer && session.status !== "live" && (
-                                    <Button
-                                        size="small"
-                                        variant="outlined"
-                                        color="success"
-                                        startIcon={<PlayIcon />}
-                                        onClick={() => handleSetLive(session._id)}
-                                    >
-                                        {t("demo_stage.go_live")}
-                                    </Button>
+                                {/* Organizer: stage dropdown */}
+                                {isOrganizer && (
+                                    <FormControl size="small" sx={{ minWidth: 120 }}>
+                                        <Select
+                                            value={session.stage || "scheduled"}
+                                            onChange={e => handleStageChange(session._id, e.target.value)}
+                                        >
+                                            <MenuItem value="scheduled">{t("demo_stage.stage_scheduled")}</MenuItem>
+                                            <MenuItem value="live">{t("demo_stage.stage_live")}</MenuItem>
+                                            <MenuItem value="completed">{t("demo_stage.stage_completed")}</MenuItem>
+                                        </Select>
+                                    </FormControl>
                                 )}
                                 <Button
                                     variant={activeSession?._id === session._id ? "contained" : "outlined"}
@@ -264,23 +582,91 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
                             {activeSession?._id === session._id && (
                                 <Box mt={2} pt={2} sx={{ borderTop: "1px solid #e0e0e0" }}>
                                     {/* Video Section */}
-                                    {(session.videoUrl || isOrganizer) && (
+                                    {/* Only show public videos to participants; organizers see all */}
+                                    {((session.videoUrl && (isOrganizer || session.videoVisibility === "public")) || isOrganizer) && (
                                         <Box mb={3}>
                                             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                                                 <VideoIcon color="action" />
                                                 <Typography variant="subtitle1" fontWeight={600}>
                                                     {t("demo_stage.demo_video")}
                                                 </Typography>
+                                                <Chip
+                                                    label={session.videoVisibility === "public" ? t("demo_stage.visibility_public") : t("demo_stage.visibility_draft")}
+                                                    color={session.videoVisibility === "public" ? "success" : "default"}
+                                                    size="small"
+                                                    sx={{ ml: 1 }}
+                                                />
                                                 {isOrganizer && (
-                                                    <Button
-                                                        size="small"
-                                                        startIcon={<EditIcon />}
-                                                        onClick={() => handleOpenVideoDialog(session)}
-                                                    >
-                                                        {session.videoUrl ? t("common.edit") : t("demo_stage.add_video")}
-                                                    </Button>
+                                                    <>
+                                                        <Button
+                                                            size="small"
+                                                            startIcon={<EditIcon />}
+                                                            onClick={() => handleOpenEditSessionDialog(session)}
+                                                        >
+                                                            {t("common.edit")}
+                                                        </Button>
+                                                        <Button
+                                                            size="small"
+                                                            startIcon={<EditIcon />}
+                                                            onClick={() => handleOpenVideoDialog(session)}
+                                                        >
+                                                            {session.videoUrl ? t("common.edit_video") : t("demo_stage.add_video")}
+                                                        </Button>
+                                                        <Button
+                                                            size="small"
+                                                            color="error"
+                                                            startIcon={<DeleteIcon />}
+                                                            onClick={() => handleDeleteSession(session._id)}
+                                                        >
+                                                            {t("common.delete")}
+                                                        </Button>
+                                                    </>
                                                 )}
                                             </Stack>
+
+                                            {/* Edit Session Dialog */}
+                                            {showEditSessionDialog && editSessionData && (
+                                                <Dialog open={showEditSessionDialog} onClose={() => setShowEditSessionDialog(false)}>
+                                                    <DialogTitle>{t("demo_stage.edit_session")}</DialogTitle>
+                                                    <DialogContent>
+                                                        <TextField
+                                                            margin="dense"
+                                                            label={t("demo_stage.start_time")}
+                                                            type="datetime-local"
+                                                            fullWidth
+                                                            value={formatLocalDateTime(editSessionData.startTime)}
+                                                            onChange={e => handleEditSessionChange("startTime", e.target.value)}
+                                                            InputLabelProps={{ shrink: true }}
+                                                        />
+                                                        <TextField
+                                                            margin="dense"
+                                                            label={t("demo_stage.end_time")}
+                                                            type="datetime-local"
+                                                            fullWidth
+                                                            value={formatLocalDateTime(editSessionData.endTime)}
+                                                            onChange={e => handleEditSessionChange("endTime", e.target.value)}
+                                                            InputLabelProps={{ shrink: true }}
+                                                        />
+                                                        <FormControl fullWidth margin="dense">
+                                                            <InputLabel>{t("demo_stage.round")}</InputLabel>
+                                                            <Select
+                                                                value={editSessionData.round?._id || editSessionData.round || ""}
+                                                                onChange={e => handleEditSessionChange("round", e.target.value)}
+                                                                label={t("demo_stage.round")}
+                                                            >
+                                                                {rounds.map(r => (
+                                                                    <MenuItem key={r._id} value={r._id}>{r.name}</MenuItem>
+                                                                ))}
+                                                            </Select>
+                                                        </FormControl>
+                                                    </DialogContent>
+                                                    <DialogActions>
+                                                        <Button onClick={() => setShowEditSessionDialog(false)}>{t("common.cancel")}</Button>
+                                                        <Button onClick={handleSaveEditSession} variant="contained">{t("common.save")}</Button>
+                                                    </DialogActions>
+                                                </Dialog>
+                                            )}
+
                                             {session.videoUrl ? (
                                                 (() => {
                                                     const embedInfo = getEmbedUrl(session.videoUrl);
@@ -391,6 +777,20 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
                                 ))}
                             </Select>
                         </FormControl>
+                        <FormControl fullWidth required sx={{ mt: 2 }}>
+                            <InputLabel>{t("demo_stage.round")}</InputLabel>
+                            <Select
+                                value={selectedRound}
+                                onChange={(e) => setSelectedRound(e.target.value)}
+                                label={t("demo_stage.round")}
+                            >
+                                {rounds.map((round) => (
+                                    <MenuItem key={round._id || round.id} value={round._id || round.id}>
+                                        {round.name || t("demo_stage.round")}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
                         <TextField
                             label={t("demo_stage.start_time")}
                             type="datetime-local"
@@ -422,7 +822,7 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
                     <Button
                         variant="contained"
                         onClick={handleCreateSession}
-                        disabled={creating || !selectedTeam}
+                        disabled={creating || !selectedTeam || !selectedRound}
                     >
                         {creating ? t("common.loading") : t("demo_stage.schedule")}
                     </Button>
@@ -444,6 +844,17 @@ const DemoStagePage = ({ hackathonId: propHackathonId, myRole, teams = [] }) => 
                             placeholder="https://youtube.com/watch?v=... or https://loom.com/share/..."
                             fullWidth
                             autoFocus
+                        />
+                        <FormControlLabel
+                            control={
+                                <Switch
+                                    checked={editVideoVisibility === "public"}
+                                    onChange={e => setEditVideoVisibility(e.target.checked ? "public" : "draft")}
+                                    color="primary"
+                                    disabled={savingVideo}
+                                />
+                            }
+                            label={editVideoVisibility === "public" ? t("demo_stage.visibility_public_desc") : t("demo_stage.visibility_draft_desc")}
                         />
                     </Stack>
                 </DialogContent>

@@ -72,17 +72,17 @@ const AnnouncementsTab = ({ myRole, loadAnnouncements, announcementsLoading, ann
                     </Alert>
                 ) : (
                     <Stack spacing={2}>
-                        <AnnouncementList />
+                        <AnnouncementList myRole={myRole} />
                     </Stack>
                 )}
             </Box>
 
             {/* Announcement Create/Edit Dialog */}
-            <AnnouncementCreateEditDialog 
-                id={id} announcementForm={announcementForm} 
-                showAnnouncementDialog={showAnnouncementDialog} 
-                setShowAnnouncementDialog={setShowAnnouncementDialog} 
-                setAnnouncementForm={setAnnouncementForm} 
+            <AnnouncementCreateEditDialog
+                id={id} announcementForm={announcementForm}
+                showAnnouncementDialog={showAnnouncementDialog}
+                setShowAnnouncementDialog={setShowAnnouncementDialog}
+                setAnnouncementForm={setAnnouncementForm}
                 loadAnnouncements={loadAnnouncements}
                 editingAnnouncement={editingAnnouncement}
                 setEditingAnnouncement={setEditingAnnouncement}

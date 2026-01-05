@@ -123,15 +123,13 @@ const HackathonPageHeader = ({ hackathon, myRole, myTeam, setConfirmDialog, setI
                 >
                     <Tab label={t("hackathon.overview")} />
                     {myRole && <Tab label={t("members.title")} />}
-                    {myRole && (
-                        <Tab
-                            label={t("announcement.announcements")}
-                            icon={<AnnouncementIcon />}
-                            iconPosition="start"
-                        />
-                    )}
-                    {myRole && <Tab label={t("teams.title")} />}
-                    {myRole && <Tab label={t("demo_stage.title")} />}
+                    <Tab
+                        label={t("announcement.announcements")}
+                        icon={<AnnouncementIcon />}
+                        iconPosition="start"
+                    />
+                    <Tab label={t("teams.title")} />
+                    <Tab label={t("demo_stage.title")} />
                 </Tabs>
             </Box>
         </>
