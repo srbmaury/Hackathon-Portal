@@ -12,6 +12,13 @@ if (process.env.NODE_ENV !== "test") {
   connectDB();
 }
 
+// Remove COOP/COEP headers if present (prevent browser blocking postMessage)
+app.use((req, res, next) => {
+  res.removeHeader && res.removeHeader('Cross-Origin-Opener-Policy');
+  res.removeHeader && res.removeHeader('Cross-Origin-Embedder-Policy');
+  next();
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());
